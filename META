@@ -1,0 +1,4 @@
+description = "Extensible binary serialization format"
+requires = ""
+archive(byte) = "biniou.cma"
+archive(native) = "biniou.cmxa"

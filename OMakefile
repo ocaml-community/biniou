@@ -1,0 +1,22 @@
+USE_OCAMLFIND = true
+BYTE_ENABLED = true
+
+FILES[] =
+  bi_util
+  bi_buf
+  bi_vint
+  bi_io
+
+OCAMLFLAGS = -dtypes
+OCAMLPACKS = unix
+
+
+.DEFAULT: biniou.cma biniou.cmxa test_biniou
+
+.PHONY: clean
+
+clean:
+        rm -f *.o *.a *.cm* *~ *.annot test_biniou test_biniou.opt
+
+OCamlLibrary(biniou, $(FILES))
+OCamlProgram(test_biniou, $(FILES) bi_main)

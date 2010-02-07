@@ -160,7 +160,7 @@ let make_unhash l =
   ) l;
   fun h ->
     try Hashtbl.find tbl h
-    with Not_found -> sprintf "#%04x" h
+    with Not_found -> sprintf "#%08lx" (Int32.of_int h)
 
 
 let write_tag buf x =
@@ -445,7 +445,7 @@ let read_string s pos = `String (read_untagged_string s pos)
 
 let print s = print_string s; print_newline ()
 
-let tree_of_string ~unhash s : tree =
+let tree_of_string ?(unhash = make_unhash [])  s : tree =
 
   let rec read_array s pos =
     let len = Bi_vint.read_uvint s pos in
@@ -560,3 +560,82 @@ let tree_of_string ~unhash s : tree =
       
   in
   read_tree s (ref 0)
+
+
+module Pp =
+struct
+  open Easy_format
+
+  let array = list
+  let record = list
+  let tuple = { list with
+		  space_after_opening = false;
+		  space_before_closing = false;
+		  align_closing = false }
+  let variant = { list with
+		    separators_stick_left = true }
+		    
+  let map f a = Array.to_list (Array.map f a)
+
+  let rec format (x : tree) =
+    match x with
+	`Int8 x -> Atom (sprintf "0x%02x" x, atom)
+      | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
+      | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
+      | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)
+      | `Int128 (x, y) -> Atom (sprintf "0x%016Lx%016Lx" x y, atom)
+      | `Float64 x -> Atom (string_of_float x, atom)
+      | `Uvint x -> Atom (string_of_int x, atom)
+      | `Svint x -> Atom (string_of_int x, atom)
+      | `String s -> Atom (sprintf "%S" s, atom)
+      | `Array (_, a) -> List (("[", ";", "]", array), map format a)
+      | `Tuple a -> List (("(", ",", ")", tuple), map format a)
+      | `Record a -> List (("{", ";", "}", record), map format_field a)
+      | `Num_variant (i, o) ->
+	  let cons = Atom (sprintf "`%i" i, atom) in
+	  (match o with
+	       None -> cons
+	     | Some x -> Label ((cons, label), format x))
+      | `Variant (s, _, o) ->
+	  let cons = Atom (sprintf "`%s" s, atom) in
+	  (match o with
+	       None -> cons
+	     | Some x -> Label ((cons, label), format x))
+	  
+      | `Tuple_table (_, aa) -> 
+	  let tuple_array =
+	    `Array (tuple_tag, Array.map (fun a -> `Tuple a) aa) in
+	  format tuple_array
+	    
+      | `Record_table (header, aa) ->
+	  let record_array =
+	    `Array (
+	      record_tag,
+	      Array.map (
+		fun a ->
+		  `Record (
+		    Array.mapi (
+		      fun i x -> 
+			let s, h, _ = header.(i) in
+			(s, h, x)
+		    ) a
+		  )
+	      ) aa
+	    ) in
+	  format record_array
+	    
+      | `Matrix (cell_tag, _, aa) ->
+	  let array_array =
+	    `Array (
+	      array_tag,
+	      Array.map (fun a -> `Array (cell_tag, a)) aa
+	    ) in
+	  format array_array
+	    
+  and format_field (s, h, x) =
+    Label ((Atom (sprintf "%s =" s, atom), label), format x)
+end
+
+
+let inspect ?unhash s =
+  Easy_format.Pretty.to_string (Pp.format (tree_of_string ?unhash s))

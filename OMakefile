@@ -8,15 +8,17 @@ FILES[] =
   bi_io
 
 OCAMLFLAGS = -dtypes
-OCAMLPACKS = unix
+OCAMLPACKS = unix easy-format
 
 
-.DEFAULT: biniou.cma biniou.cmxa test_biniou
+.DEFAULT: biniou.cma biniou.cmxa test_biniou bdump
 
 .PHONY: clean
 
 clean:
-        rm -f *.o *.a *.cm* *~ *.annot test_biniou test_biniou.opt
+        rm -f *.o *.a *.cm* *~ *.annot test_biniou test_biniou.opt \
+		bdump bdump.opt test.bin
 
 OCamlLibrary(biniou, $(FILES))
 OCamlProgram(test_biniou, $(FILES) bi_main)
+OCamlProgram(bdump, $(FILES) bdump)

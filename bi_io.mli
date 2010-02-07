@@ -80,5 +80,8 @@ type tree =
 val string_of_tree : tree -> string
   (* Testing *)
 
-val tree_of_string : unhash:(hash -> string) -> string -> tree
+val tree_of_string : ?unhash:(hash -> string) -> string -> tree
   (* Testing *)
+
+val inspect : ?unhash:(hash -> string) -> string -> string
+  (* Print human-readable representation of the data *)

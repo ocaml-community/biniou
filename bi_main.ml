@@ -155,4 +155,13 @@ let wr_perf () =
   time "marshal" marshal_wr_perf n
 
 
-let _ = wr_perf ()
+let _ =
+  let s = string_of_tree test_tree in
+  print_string (Bi_io.inspect s);
+  print_newline ();
+
+  let oc = open_out_bin "test.bin" in
+  output_string oc s;
+  close_out oc;
+
+  wr_perf ()

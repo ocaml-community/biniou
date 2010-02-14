@@ -41,6 +41,7 @@ val write_untagged_int8 : Bi_buf.t -> int -> unit
 val write_untagged_int16 : Bi_buf.t -> int -> unit
 val write_untagged_int32 : Bi_buf.t -> int32 -> unit
 val write_untagged_int64 : Bi_buf.t -> int64 -> unit
+val write_untagged_int128 : Bi_buf.t -> string -> unit
 val write_untagged_float64 : Bi_buf.t -> float -> unit
 val write_untagged_string : Bi_buf.t -> string -> unit
 val write_untagged_uvint : Bi_buf.t -> int -> unit
@@ -51,6 +52,7 @@ val read_untagged_int8 : string -> int ref -> int
 val read_untagged_int16 : string -> int ref -> int
 val read_untagged_int32 : string -> int ref -> int32
 val read_untagged_int64 : string -> int ref -> int64
+val read_untagged_int128 : string -> int ref -> string
 val read_untagged_float64 : string -> int ref -> float
 val read_untagged_string : string -> int ref -> string
 val read_untagged_uvint : string -> int ref -> int
@@ -62,7 +64,7 @@ type tree =
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
-    | `Int128 of (Int64.t * Int64.t)
+    | `Int128 of string (* big endian, string length must be exactly 16 *)
     | `Float64 of float
     | `Uvint of int
     | `Svint of int

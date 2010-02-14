@@ -34,7 +34,7 @@ type tree =
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
-    | `Int128 of (Int64.t * Int64.t)
+    | `Int128 of string
     | `Float64 of float
     | `Uvint of int
     | `Svint of int
@@ -202,6 +202,11 @@ let write_untagged_string buf s =
   Bi_vint.write_uvint buf (String.length s);
   Bi_buf.add_string buf s
 
+let write_untagged_int128 buf s =
+  if String.length s <> 16 then
+    invalid_arg "Bi_io.write_untagged_int128";
+  Bi_buf.add_string buf s
+
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
@@ -227,11 +232,10 @@ let rec write_tree buf tagged (x : tree) =
 	  write_tag buf int64_tag;
 	write_untagged_int64 buf x
 
-    | `Int128 (x1, x2) ->
+    | `Int128 x ->
 	if tagged then
 	  write_tag buf int128_tag;
-	write_untagged_int64 buf x1;
-	write_untagged_int64 buf x2
+	write_untagged_int128 buf x
 
     | `Float64 x ->
 	if tagged then
@@ -419,6 +423,13 @@ let read_untagged_string s pos =
   pos := !pos + len;
   str
 
+let read_untagged_int128 s pos =
+  if !pos + 16 > String.length s then
+    Bi_util.error "Corrupted data (int128)";
+  let str = String.sub s !pos 16 in
+  pos := !pos + 16;
+  str
+
 let read_untagged_uvint = Bi_vint.read_uvint
 let read_untagged_svint = Bi_vint.read_svint
 
@@ -430,10 +441,7 @@ let read_int32 s pos = `Int32 (read_untagged_int32 s pos)
 
 let read_int64 s pos = `Int64 (read_untagged_int64 s pos)
 
-let read_int128 s pos =
-  let x1 = read_untagged_int64 s pos in
-  let x2 = read_untagged_int64 s pos in
-  `Int128 (x1, x2)
+let read_int128 s pos = `Int128 (read_untagged_int128 s pos)
 
 let read_float s pos =
   `Float64 (read_untagged_float64 s pos)
@@ -583,7 +591,7 @@ struct
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
       | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)
-      | `Int128 (x, y) -> Atom (sprintf "0x%016Lx%016Lx" x y, atom)
+      | `Int128 x -> Atom ("0x" ^ Digest.to_hex x, atom)
       | `Float64 x -> Atom (string_of_float x, atom)
       | `Uvint x -> Atom (string_of_int x, atom)
       | `Svint x -> Atom (string_of_int x, atom)

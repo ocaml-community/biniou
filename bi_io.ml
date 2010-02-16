@@ -210,6 +210,46 @@ let write_untagged_int128 buf s =
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
+
+let write_tagged_int8 buf x =
+  write_tag buf int8_tag;
+  write_untagged_int8 buf x
+
+let write_tagged_int16 buf x =
+  write_tag buf int16_tag;
+  write_untagged_int16 buf x
+
+let write_tagged_int32 buf x =
+  write_tag buf int32_tag;
+  write_untagged_int32 buf x
+
+let write_tagged_int64 buf x =
+  write_tag buf int64_tag;
+  write_untagged_int64 buf x
+
+let write_tagged_int128 buf x =
+  write_tag buf int128_tag;
+  write_untagged_string buf x
+
+let write_tagged_float64 buf x =
+  write_tag buf float64_tag;
+  write_untagged_float64 buf x
+
+let write_tagged_string buf x =
+  write_tag buf string_tag;
+  write_untagged_string buf x
+
+let write_tagged_uvint buf x =
+  write_tag buf uvint_tag;
+  write_untagged_uvint buf x
+
+let write_tagged_svint buf x =
+  write_tag buf svint_tag;
+  write_untagged_svint buf x
+
+
+
+
 let rec write_tree buf tagged (x : tree) =
   match x with
       `Int8 x ->

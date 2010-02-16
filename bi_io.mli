@@ -47,6 +47,16 @@ val write_untagged_string : Bi_buf.t -> string -> unit
 val write_untagged_uvint : Bi_buf.t -> int -> unit
 val write_untagged_svint : Bi_buf.t -> int -> unit
 
+val write_tagged_int8 : Bi_buf.t -> int -> unit
+val write_tagged_int16 : Bi_buf.t -> int -> unit
+val write_tagged_int32 : Bi_buf.t -> int32 -> unit
+val write_tagged_int64 : Bi_buf.t -> int64 -> unit
+val write_tagged_int128 : Bi_buf.t -> string -> unit
+val write_tagged_float64 : Bi_buf.t -> float -> unit
+val write_tagged_string : Bi_buf.t -> string -> unit
+val write_tagged_uvint : Bi_buf.t -> int -> unit
+val write_tagged_svint : Bi_buf.t -> int -> unit
+
 val read_tag : string -> int ref -> node_tag
 val read_untagged_int8 : string -> int ref -> int
 val read_untagged_int16 : string -> int ref -> int

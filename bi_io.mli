@@ -1,6 +1,8 @@
 (* $Id$ *)
 
 type node_tag = int
+
+val unknown_tag : node_tag (* 0 *)
 val int8_tag : node_tag (* 1 *)
 val int16_tag : node_tag (* 2 *)
 val int32_tag : node_tag (* 3 *)

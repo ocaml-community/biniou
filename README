@@ -39,14 +39,14 @@ ATOM ::= int8
 
 BOXVAL ::= TAG VAL
 
-ARRAY ::= LENGTH TAG VAL*
+ARRAY ::= LENGTH (TAG VAL*)?
 NUM_VARIANT ::= NUM_VARIANT_TAG BOXVAL?
 VARIANT ::= VARIANT_TAG BOXVAL?
 TUPLE ::= LENGTH BOXVAL*
 RECORD ::= LENGTH (FIELD_TAG BOXVAL)*
-TUPLE_TABLE ::= LENGTH LENGTH TAG* (VAL*)*                 // list of tuples
-RECORD_TABLE ::= LENGTH LENGTH (FIELD_TAG TAG)* (VAL*)*    // list of records
-MATRIX ::= LENGTH LENGTH TAG (VAL*)*       // rectangular 2D array
+TUPLE_TABLE ::= LENGTH (LENGTH TAG* (VAL*)*)?               // list of tuples
+RECORD_TABLE ::= LENGTH (LENGTH (FIELD_TAG TAG)* (VAL*)*)?  // list of records
+MATRIX ::= LENGTH (LENGTH TAG (VAL*)*)?          // rectangular 2D array
 
 TAG ::= int8
 LENGTH ::= uvint

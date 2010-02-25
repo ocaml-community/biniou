@@ -6,6 +6,7 @@ open Bi_buf
 
 type node_tag = int
 
+let unknown_tag = 0
 let int8_tag = 1
 let int16_tag = 2
 let int32_tag = 3
@@ -300,10 +301,13 @@ let rec write_tree buf tagged (x : tree) =
     | `Array (node_tag, a) ->
 	if tagged then
 	  write_tag buf array_tag;
-	Bi_vint.write_uvint buf (Array.length a);
-	write_tag buf node_tag;
-	Array.iter (write_tree buf false) a
-	
+	let len = Array.length a in
+	Bi_vint.write_uvint buf len;
+	if len > 0 then (
+	  write_tag buf node_tag;
+	  Array.iter (write_tree buf false) a
+	)
+
     | `Tuple a ->
 	if tagged then
 	  write_tag buf tuple_tag;
@@ -337,10 +341,10 @@ let rec write_tree buf tagged (x : tree) =
 	  write_tag buf tuple_table_tag;
 	let row_num = Array.length a in
 	Bi_vint.write_uvint buf row_num;
-	let col_num = Array.length node_tags in
-	Bi_vint.write_uvint buf col_num;
-	Array.iter (write_tag buf) node_tags;
 	if row_num > 0 then (
+	  let col_num = Array.length node_tags in
+	  Bi_vint.write_uvint buf col_num;
+	  Array.iter (write_tag buf) node_tags;
 	  for i = 0 to row_num - 1 do
 	    let ai = a.(i) in
 	    if Array.length ai <> col_num then
@@ -356,32 +360,33 @@ let rec write_tree buf tagged (x : tree) =
 	  write_tag buf record_table_tag;
 	let row_num = Array.length a in
 	Bi_vint.write_uvint buf row_num;
-	let col_num = Array.length fields in
-	Bi_vint.write_uvint buf col_num;
-	Array.iter (
-	  fun (name, h, tag) ->
-	    write_hashtag buf h true;
-	    write_tag buf tag
-	) fields;
-	if row_num > 0 then (
-	  for i = 0 to row_num - 1 do
-	    let ai = a.(i) in
-	    if Array.length ai <> col_num then
-	      invalid_arg "Bi_io.write_tree: Malformed `Record_table";
-	    for j = 0 to col_num - 1 do
-	      write_tree buf false ai.(j)
+	if row_num > 0 then
+	  let col_num = Array.length fields in
+	  Bi_vint.write_uvint buf col_num;
+	  Array.iter (
+	    fun (name, h, tag) ->
+	      write_hashtag buf h true;
+	      write_tag buf tag
+	  ) fields;
+	  if row_num > 0 then (
+	    for i = 0 to row_num - 1 do
+	      let ai = a.(i) in
+	      if Array.length ai <> col_num then
+		invalid_arg "Bi_io.write_tree: Malformed `Record_table";
+	      for j = 0 to col_num - 1 do
+		write_tree buf false ai.(j)
+	      done
 	    done
-	  done
-	)
+	  )
 
     | `Matrix (node_tag, col_num, a) ->
 	if tagged then
 	  write_tag buf matrix_tag;
 	let row_num = Array.length a in
 	Bi_vint.write_uvint buf row_num;
-	Bi_vint.write_uvint buf col_num;
-	write_tag buf node_tag;
 	if row_num > 0 then (
+	  Bi_vint.write_uvint buf col_num;
+	  write_tag buf node_tag;
 	  for i = 0 to row_num - 1 do
 	    let ai = a.(i) in
 	    if Array.length ai <> col_num then
@@ -497,9 +502,11 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
 
   let rec read_array s pos =
     let len = Bi_vint.read_uvint s pos in
-    let tag = read_tag s pos in
-    let read = reader_of_tag tag in
-    `Array (tag, Array.init len (fun _ -> read s pos))
+    if len = 0 then `Array (unknown_tag, [| |])
+    else
+      let tag = read_tag s pos in
+      let read = reader_of_tag tag in
+      `Array (tag, Array.init len (fun _ -> read s pos))
       
   and read_tuple s pos =
     let len = Bi_vint.read_uvint s pos in
@@ -542,45 +549,54 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
       
   and read_tuple_table s pos =
     let row_num = Bi_vint.read_uvint s pos in
-    let col_num = Bi_vint.read_uvint s pos in
-    let tags = Array.init col_num (fun _ -> read_tag s pos) in
-    let readers = Array.map reader_of_tag tags in
-    let a =
-      Array.init row_num
-	(fun _ ->
-	   Array.init col_num (fun j -> readers.(j) s pos))
-    in
-    `Tuple_table (tags, a)
+    if row_num = 0 then
+      `Tuple_table ([||], [||])
+    else
+      let col_num = Bi_vint.read_uvint s pos in
+      let tags = Array.init col_num (fun _ -> read_tag s pos) in
+      let readers = Array.map reader_of_tag tags in
+      let a =
+	Array.init row_num
+	  (fun _ ->
+	     Array.init col_num (fun j -> readers.(j) s pos))
+      in
+      `Tuple_table (tags, a)
 
   and read_record_table s pos =
     let row_num = Bi_vint.read_uvint s pos in
-    let col_num = Bi_vint.read_uvint s pos in
-    let fields = 
-      Array.init col_num (
-	fun _ ->
-	  let h = read_field_hashtag s pos in
-	  let name = unhash h in
-	  let tag = read_tag s pos in
-	  (name, h, tag)
-      )
-    in
-    let readers = 
-      Array.map (fun (name, h, tag) -> reader_of_tag tag) fields in
-    let a =
-      Array.init row_num
-	(fun _ ->
-	   Array.init col_num (fun j -> readers.(j) s pos))
-    in
-    `Record_table (fields, a)
-
+    if row_num = 0 then
+      `Record_table ([| |], [| |])
+    else
+      let col_num = Bi_vint.read_uvint s pos in
+      let fields = 
+	Array.init col_num (
+	  fun _ ->
+	    let h = read_field_hashtag s pos in
+	    let name = unhash h in
+	    let tag = read_tag s pos in
+	    (name, h, tag)
+	)
+      in
+      let readers = 
+	Array.map (fun (name, h, tag) -> reader_of_tag tag) fields in
+      let a =
+	Array.init row_num
+	  (fun _ ->
+	     Array.init col_num (fun j -> readers.(j) s pos))
+      in
+      `Record_table (fields, a)
+	
   and read_matrix s pos =
     let row_num = Bi_vint.read_uvint s pos in
-    let col_num = Bi_vint.read_uvint s pos in
-    let tag = read_tag s pos in
-    let reader = reader_of_tag tag in
-    let read i = reader s pos in
-    let a = Array.init row_num (fun _ -> Array.init col_num read) in
-    `Matrix (tag, col_num, a)
+    if row_num = 0 then
+      `Matrix (unknown_tag, 0, [| |])
+    else
+      let col_num = Bi_vint.read_uvint s pos in
+      let tag = read_tag s pos in
+      let reader = reader_of_tag tag in
+      let read i = reader s pos in
+      let a = Array.init row_num (fun _ -> Array.init col_num read) in
+      `Matrix (tag, col_num, a)
       
 
   and reader_of_tag = function

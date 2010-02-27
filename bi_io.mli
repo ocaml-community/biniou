@@ -24,6 +24,7 @@ val matrix_tag : node_tag (* 26 *)
 type hash = int (* 31 bits *)
 val hash_name : string -> hash
 val write_hashtag : Bi_buf.t -> hash -> bool -> unit
+val string_of_hashtag : hash -> bool -> string
 val read_hashtag : 
   string -> int ref ->
   (string -> int ref -> hash -> bool -> 'a) -> 'a

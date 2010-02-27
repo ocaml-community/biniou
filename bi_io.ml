@@ -93,6 +93,11 @@ let write_hashtag buf h has_arg =
     else h
   )
 
+let string_of_hashtag h has_arg =
+  let buf = Bi_buf.create 4 in
+  write_hashtag buf h has_arg;
+  Bi_buf.contents buf
+
 let read_hashtag s pos cont =
   let i = !pos in
   if i + 4 > String.length s then

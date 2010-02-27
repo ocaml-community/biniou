@@ -4,12 +4,14 @@
 
 type t = {
   mutable s : string;
+  mutable max_len : int;
   mutable len : int;
   init_len : int
 }
 
 let create n = {
   s = String.create n;
+  max_len = n;
   len = 0;
   init_len = n
 }
@@ -19,9 +21,9 @@ let create n = {
   by reallocating a larger buffer string if needed.
 *)
 let extend b n =
-  let slen0 = String.length b.s in
-  let reqlen = b.len + n in
-  if slen0 < reqlen then
+  if b.len + n > b.max_len then
+    let slen0 = b.max_len in
+    let reqlen = b.len + n in
     let slen =
       let x = 2 * slen0 in
       if x <= Sys.max_string_length then x
@@ -33,7 +35,8 @@ let extend b n =
     in
     let s = String.create slen in
     String.blit b.s 0 s 0 b.len;
-    b.s <- s
+    b.s <- s;
+    b.max_len <- slen
 
 (*
   Add n arbitrary bytes to the buffer and return the first position
@@ -59,6 +62,21 @@ let unsafe_add_char b c =
   let len = b.len in
   b.s.[len] <- c;
   b.len <- len + 1
+
+let add_char2 b c1 c2 =
+  let pos = alloc b 2 in
+  let s = b.s in
+  String.unsafe_set s pos c1;
+  String.unsafe_set s (pos+1) c2
+
+let add_char4 b c1 c2 c3 c4 =
+  let pos = alloc b 4 in
+  let s = b.s in
+  String.unsafe_set s pos c1;
+  String.unsafe_set s (pos+1) c2;
+  String.unsafe_set s (pos+2) c3;
+  String.unsafe_set s (pos+3) c4
+
 
 
 let clear b = b.len <- 0

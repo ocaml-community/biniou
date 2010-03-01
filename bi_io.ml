@@ -172,6 +172,9 @@ let make_unhash l =
 let write_tag buf x =
   Bi_buf.add_char buf (Char.chr x)
 
+let write_untagged_char buf x =
+  Bi_buf.add_char buf x
+
 let write_untagged_int8 buf x =
   Bi_buf.add_char buf (Char.chr x)
 
@@ -216,6 +219,10 @@ let write_untagged_int128 buf s =
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
+
+let write_tagged_char buf x =
+  write_tag buf int8_tag;
+  write_untagged_char buf x
 
 let write_tagged_int8 buf x =
   write_tag buf int8_tag;
@@ -416,6 +423,13 @@ let read_tag s pos =
   if !pos >= String.length s then
     Bi_util.error "Corrupted data (tag)";
   let x = Char.code s.[!pos] in
+  incr pos;
+  x
+
+let read_untagged_char s pos =
+  if !pos >= String.length s then
+    Bi_util.error "Corrupted data (char)";
+  let x = s.[!pos] in
   incr pos;
   x
 

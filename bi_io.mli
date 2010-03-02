@@ -74,6 +74,8 @@ val read_untagged_string : string -> int ref -> string
 val read_untagged_uvint : string -> int ref -> int
 val read_untagged_svint : string -> int ref -> int
 
+val skip : string -> int ref -> unit
+  (* read and discard a value (useful for skipping unknown record fields) *)
 
 type tree =
     [ `Int8 of int

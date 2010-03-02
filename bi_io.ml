@@ -645,6 +645,138 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
   read_tree s (ref 0)
 
 
+let skip_bytes n s pos =
+  let p = !pos + n in
+  pos := p;
+  if p > String.length s then
+    Bi_util.error "Corrupted data (skip_bytes)"
+
+let skip_int8 s pos = skip_bytes 1 s pos
+let skip_int16 s pos = skip_bytes 2 s pos
+let skip_int32 s pos = skip_bytes 4 s pos
+let skip_int64 s pos = skip_bytes 8 s pos
+let skip_int128 s pos = skip_bytes 16 s pos
+let skip_float s pos = skip_bytes 8 s pos
+let skip_uvint s pos = ignore (read_untagged_uvint s pos)
+let skip_svint s pos = ignore (read_untagged_svint s pos)
+
+let skip_string s pos =
+  let len = Bi_vint.read_uvint s pos in
+  skip_bytes len s pos
+
+let rec skip_array s pos =
+  let len = Bi_vint.read_uvint s pos in
+  if len = 0 then ()
+  else
+    let tag = read_tag s pos in
+    let read = skipper_of_tag tag in
+    for i = 1 to len do
+      read s pos
+    done
+      
+and skip_tuple s pos =
+  let len = Bi_vint.read_uvint s pos in
+  for i = 1 to len do
+    skip s pos
+  done
+    
+and skip_field s pos =
+  ignore (read_field_hashtag s pos);
+  skip s pos
+    
+and skip_record s pos =
+  let len = Bi_vint.read_uvint s pos in
+  for i = 1 to len do
+    skip_field s pos
+  done
+    
+and skip_num_variant_cont s pos i has_arg =
+  if has_arg then
+    skip s pos
+      
+and skip_num_variant s pos =
+  read_numtag s pos skip_num_variant_cont
+    
+and skip_variant_cont s pos h has_arg =
+  if has_arg then
+    skip s pos
+      
+and skip_variant s pos =
+  read_hashtag s pos skip_variant_cont
+    
+and skip_tuple_table s pos =
+  let row_num = Bi_vint.read_uvint s pos in
+  if row_num = 0 then
+    ()
+  else
+    let col_num = Bi_vint.read_uvint s pos in
+    let readers =
+      Array.init col_num (fun _ -> skipper_of_tag (read_tag s pos)) in
+    for i = 1 to row_num do
+      for j = 1 to col_num do
+	readers.(j) s pos
+      done
+    done
+      
+and skip_record_table s pos =
+  let row_num = Bi_vint.read_uvint s pos in
+  if row_num = 0 then
+    ()
+  else
+    let col_num = Bi_vint.read_uvint s pos in
+    let readers = 
+      Array.init col_num (
+	fun _ ->
+	  ignore (read_field_hashtag s pos);
+	  skipper_of_tag (read_tag s pos)
+      )
+    in
+    for i = 1 to row_num do
+      for j = 1 to col_num do
+	readers.(j) s pos
+      done
+    done
+      
+and skip_matrix s pos =
+  let row_num = Bi_vint.read_uvint s pos in
+  if row_num = 0 then
+    ()
+  else
+    let col_num = Bi_vint.read_uvint s pos in
+    let tag = read_tag s pos in
+    let reader = skipper_of_tag tag in
+    for i = 1 to row_num do
+      for j = 1 to col_num do
+	reader s pos
+      done
+    done
+      
+      
+and skipper_of_tag = function
+    1 (* int8 *) -> skip_int8
+  | 2 (* int16 *) -> skip_int16
+  | 3 (* int32 *) -> skip_int32
+  | 4 (* int64 *) -> skip_int64
+  | 5 (* int128 *) -> skip_int128
+  | 12 (* float *) -> skip_float
+  | 16 (* uvint *) -> skip_uvint
+  | 17 (* svint *) -> skip_svint
+  | 18 (* string *) -> skip_string
+  | 19 (* array *) -> skip_array
+  | 20 (* tuple *) -> skip_tuple
+  | 21 (* record *) -> skip_record
+  | 22 (* num_variant *) -> skip_num_variant
+  | 23 (* variant *) -> skip_variant
+  | 24 (* tuple_table *) -> skip_tuple_table
+  | 25 (* record_table *) -> skip_record_table
+  | 26 (* matrix *) -> skip_matrix
+  | _ -> Bi_util.error "Corrupted data (invalid tag)"
+	
+and skip s pos : unit =
+  skipper_of_tag (read_tag s pos) s pos
+    
+
+
 module Pp =
 struct
   open Easy_format

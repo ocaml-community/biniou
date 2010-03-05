@@ -204,8 +204,58 @@ let write_untagged_int64 buf x =
   Bi_buf.add_char buf (Char.chr ((x1 lsr 8) land 0xff));
   Bi_buf.add_char buf (Char.chr (x1 land 0xff))
 
+
+let float_endianness =
+  match String.unsafe_get (Obj.magic 1.0) 0 with
+      '\x3f' -> `Big
+    | '\x00' -> `Little
+    | _ -> assert false
+
+let read_untagged_float64 s pos =
+  let i = !pos in
+  let i' = i + 8 in
+  if i' > String.length s then
+    failwith "Corrupted data (float64)";
+  let x = Obj.new_block Obj.double_tag 8 in
+  (match float_endianness with
+       `Little ->
+	 for j = 0 to 7 do
+	   String.unsafe_set (Obj.obj x) (7-j) (String.unsafe_get s (i+j))
+	 done
+     | `Big ->
+	 for j = 0 to 7 do
+	   String.unsafe_set (Obj.obj x) j (String.unsafe_get s (i+j))
+	 done
+  );
+  pos := i';
+  (Obj.obj x : float)
+
 let write_untagged_float64 buf x =
-  write_untagged_int64 buf (Int64.bits_of_float x)
+  let i = Bi_buf.alloc buf 8 in
+  let s = buf.s in
+  (match float_endianness with
+       `Little ->
+	 for j = 0 to 7 do
+	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) (7-j))
+	 done
+     | `Big ->
+	 for j = 0 to 7 do
+	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) j)
+	 done
+  )
+
+let () =
+  let s = "\x3f\xf0\x06\x05\x04\x03\x02\x01" in
+  let x = 1.00146962706651288 in
+  let y = read_untagged_float64 s (ref 0) in
+  if x <> y then
+    assert false;
+  let buf = Bi_buf.create 8 in
+  write_untagged_float64 buf x;
+  if Bi_buf.contents buf <> s then
+    assert false
+
+
 
 let write_untagged_string buf s =
   Bi_vint.write_uvint buf (String.length s);
@@ -220,43 +270,43 @@ let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
 
-let write_tagged_char buf x =
+let write_char buf x =
   write_tag buf int8_tag;
   write_untagged_char buf x
 
-let write_tagged_int8 buf x =
+let write_int8 buf x =
   write_tag buf int8_tag;
   write_untagged_int8 buf x
 
-let write_tagged_int16 buf x =
+let write_int16 buf x =
   write_tag buf int16_tag;
   write_untagged_int16 buf x
 
-let write_tagged_int32 buf x =
+let write_int32 buf x =
   write_tag buf int32_tag;
   write_untagged_int32 buf x
 
-let write_tagged_int64 buf x =
+let write_int64 buf x =
   write_tag buf int64_tag;
   write_untagged_int64 buf x
 
-let write_tagged_int128 buf x =
+let write_int128 buf x =
   write_tag buf int128_tag;
   write_untagged_string buf x
 
-let write_tagged_float64 buf x =
+let write_float64 buf x =
   write_tag buf float64_tag;
   write_untagged_float64 buf x
 
-let write_tagged_string buf x =
+let write_string buf x =
   write_tag buf string_tag;
   write_untagged_string buf x
 
-let write_tagged_uvint buf x =
+let write_uvint buf x =
   write_tag buf uvint_tag;
   write_untagged_uvint buf x
 
-let write_tagged_svint buf x =
+let write_svint buf x =
   write_tag buf svint_tag;
   write_untagged_svint buf x
 
@@ -474,10 +524,10 @@ let read_untagged_int64 s pos =
   pos := !pos + 8;
   Int64.logor (Int64.shift_left x1 48)
     (Int64.logor (Int64.shift_left x2 32)
-       (Int64.logor (Int64.shift_left x3 24) x4))
-  
-let read_untagged_float64 s pos =
-  Int64.float_of_bits (read_untagged_int64 s pos)
+       (Int64.logor (Int64.shift_left x3 16) x4))
+
+
+
 
 let read_untagged_string s pos =
   let len = Bi_vint.read_uvint s pos in

@@ -85,15 +85,17 @@ let write_hashtag buf h has_arg =
   let h = h land 0x7fffffff in
   let pos = Bi_buf.alloc buf 4 in
   let s = buf.s in
-  s.[pos+3] <- Char.chr (h land 0xff);
+  String.unsafe_set s (pos+3) (Char.chr (h land 0xff));
   let h = h lsr 8 in
-  s.[pos+2] <- Char.chr (h land 0xff);
+  String.unsafe_set s (pos+2) (Char.chr (h land 0xff));
   let h = h lsr 8 in
-  s.[pos+1] <- Char.chr (h land 0xff);
+  String.unsafe_set s (pos+1) (Char.chr (h land 0xff));
   let h = h lsr 8 in
-  s.[pos] <- Char.chr (
-    if has_arg then h lor 0x80
-    else h
+  String.unsafe_set s pos (
+    Char.chr (
+      if has_arg then h lor 0x80
+      else h
+    )
   )
 
 let string_of_hashtag h has_arg =
@@ -119,16 +121,17 @@ let read_hashtag s pos cont =
 
 let read_field_hashtag s pos =
   let i = !pos in
-  if i + 4 > String.length s then
+  let i' = i + 4 in
+  if i' > String.length s then
     Bi_util.error "Corrupted data (truncated field hashtag)";
-  let x0 = Char.code s.[i] in
+  let x0 = Char.code (String.unsafe_get s i) in
   if x0 < 0x80 then
     Bi_util.error "Corrupted data (invalid field hashtag)";
   let x1 = (x0 land 0x7f) lsl 24 in
-  let x2 = (Char.code s.[i+1]) lsl 16 in
-  let x3 = (Char.code s.[i+2]) lsl 8 in
-  let x4 = Char.code s.[i+3] in
-  pos := !pos + 4;
+  let x2 = (Char.code (String.unsafe_get s (i+1))) lsl 16 in
+  let x3 = (Char.code (String.unsafe_get s (i+2))) lsl 8 in
+  let x4 = Char.code (String.unsafe_get s (i+3)) in
+  pos := i';
   make_signed (x1 lor x2 lor x3 lor x4)
   
 
@@ -483,11 +486,15 @@ let string_of_tree x =
   write_tree buf true x;
   Bi_buf.contents buf
 
+let tag_error () =
+  Bi_util.error "Corrupted data (tag)"
+
 let read_tag s pos =
-  if !pos >= String.length s then
-    Bi_util.error "Corrupted data (tag)";
-  let x = Char.code s.[!pos] in
-  incr pos;
+  let i = !pos in
+  if i >= String.length s then
+    tag_error ();
+  let x = Char.code (String.unsafe_get s i) in
+  pos := i + 1;
   x
 
 let read_untagged_bool s pos =

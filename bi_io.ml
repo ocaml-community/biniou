@@ -6,7 +6,9 @@ open Bi_buf
 
 type node_tag = int
 
-let unknown_tag = 0
+let unknown_tag = -1
+
+let bool_tag = 0
 let int8_tag = 1
 let int16_tag = 2
 let int32_tag = 3
@@ -31,7 +33,8 @@ type hash = int
   Data tree, for testing purposes.
 *)
 type tree =
-    [ `Int8 of int
+    [ `Bool of bool
+    | `Int8 of int
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
@@ -172,6 +175,9 @@ let make_unhash l =
 let write_tag buf x =
   Bi_buf.add_char buf (Char.chr x)
 
+let write_untagged_bool buf x =
+  Bi_buf.add_char buf (if x then '\x01' else '\x00')
+
 let write_untagged_char buf x =
   Bi_buf.add_char buf x
 
@@ -269,6 +275,9 @@ let write_untagged_int128 buf s =
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
+let write_bool buf x =
+  write_tag buf bool_tag;
+  write_untagged_bool buf x
 
 let write_char buf x =
   write_tag buf int8_tag;
@@ -315,7 +324,12 @@ let write_svint buf x =
 
 let rec write_tree buf tagged (x : tree) =
   match x with
-      `Int8 x ->
+      `Bool x ->
+	if tagged then
+	  write_tag buf bool_tag;
+	write_untagged_bool buf x
+
+    | `Int8 x ->
 	if tagged then 
 	  write_tag buf int8_tag;
 	write_untagged_int8 buf x
@@ -476,6 +490,18 @@ let read_tag s pos =
   incr pos;
   x
 
+let read_untagged_bool s pos =
+  if !pos >= String.length s then
+    Bi_util.error "Corrupted data (bool)";
+  let x =
+    match s.[!pos] with
+	'\x00' -> false
+      | '\x01' -> true
+      | _ -> Bi_util.error "Corrupted data (bool value)"
+  in
+  incr pos;
+  x
+
 let read_untagged_char s pos =
   if !pos >= String.length s then
     Bi_util.error "Corrupted data (char)";
@@ -546,6 +572,8 @@ let read_untagged_int128 s pos =
 
 let read_untagged_uvint = Bi_vint.read_uvint
 let read_untagged_svint = Bi_vint.read_svint
+
+let read_bool s pos = `Bool (read_untagged_bool s pos)
 
 let read_int8 s pos = `Int8 (read_untagged_int8 s pos)
 
@@ -669,7 +697,8 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
       
 
   and reader_of_tag = function
-      1 (* int8 *) -> read_int8
+      0 (* bool *) -> read_bool
+    | 1 (* int8 *) -> read_int8
     | 2 (* int16 *) -> read_int16
     | 3 (* int32 *) -> read_int32
     | 4 (* int64 *) -> read_int64
@@ -701,6 +730,7 @@ let skip_bytes n s pos =
   if p > String.length s then
     Bi_util.error "Corrupted data (skip_bytes)"
 
+let skip_bool s pos = skip_bytes 1 s pos
 let skip_int8 s pos = skip_bytes 1 s pos
 let skip_int16 s pos = skip_bytes 2 s pos
 let skip_int32 s pos = skip_bytes 4 s pos
@@ -803,7 +833,8 @@ and skip_matrix s pos =
       
       
 and skipper_of_tag = function
-    1 (* int8 *) -> skip_int8
+    0 (* bool *) -> skip_bool
+  | 1 (* int8 *) -> skip_int8
   | 2 (* int16 *) -> skip_int16
   | 3 (* int32 *) -> skip_int32
   | 4 (* int64 *) -> skip_int64
@@ -844,7 +875,8 @@ struct
 
   let rec format (x : tree) =
     match x with
-	`Int8 x -> Atom (sprintf "0x%02x" x, atom)
+	`Bool x -> Atom ((if x then "true" else "false"), atom)
+      | `Int8 x -> Atom (sprintf "0x%02x" x, atom)
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
       | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)

@@ -304,7 +304,7 @@ let write_int64 buf x =
 
 let write_int128 buf x =
   write_tag buf int128_tag;
-  write_untagged_string buf x
+  write_untagged_int128 buf x
 
 let write_float64 buf x =
   write_tag buf float64_tag;

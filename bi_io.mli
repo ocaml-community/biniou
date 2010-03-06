@@ -17,9 +17,7 @@ val tuple_tag : node_tag (* 20 *)
 val record_tag : node_tag (* 21 *)
 val num_variant_tag : node_tag (* 22 *)
 val variant_tag : node_tag (* 23 *)
-val tuple_table_tag : node_tag (* 24 *)
 val record_table_tag : node_tag (* 25  *)
-val matrix_tag : node_tag (* 26 *)
 
 type hash = int (* 31 bits *)
 val hash_name : string -> hash
@@ -31,7 +29,7 @@ val read_hashtag :
 
 val read_field_hashtag : string -> int ref -> hash
 
-val make_unhash : string list -> (int -> string)
+val make_unhash : string list -> (int -> string option)
 
 type int7 = int
 val write_numtag : Bi_buf.t -> int7 -> bool -> unit
@@ -92,21 +90,20 @@ type tree =
     | `Uvint of int
     | `Svint of int
     | `String of string
-    | `Array of (node_tag * tree array)
+    | `Array of (node_tag * tree array) option
     | `Tuple of tree array
-    | `Record of (string * hash * tree) array
+    | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
-    | `Variant of (string * hash * tree option)
-    | `Tuple_table of (node_tag array * tree array array)
-    | `Record_table of ((string * hash * node_tag) array * tree array array)
-    | `Matrix of (node_tag * int * tree array array) ]
+    | `Variant of (string option * hash * tree option)
+    | `Record_table of 
+	((string option * hash * node_tag) array * tree array array) option ]
   (* Sample data type intended for testing *)
 
 val string_of_tree : tree -> string
   (* Testing *)
 
-val tree_of_string : ?unhash:(hash -> string) -> string -> tree
+val tree_of_string : ?unhash:(hash -> string option) -> string -> tree
   (* Testing *)
 
-val inspect : ?unhash:(hash -> string) -> string -> string
+val inspect : ?unhash:(hash -> string option) -> string -> string
   (* Print human-readable representation of the data *)

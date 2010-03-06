@@ -6,8 +6,6 @@ open Bi_buf
 
 type node_tag = int
 
-let unknown_tag = -1
-
 let bool_tag = 0
 let int8_tag = 1
 let int16_tag = 2
@@ -43,14 +41,13 @@ type tree =
     | `Uvint of int
     | `Svint of int
     | `String of string
-    | `Array of (node_tag * tree array)
+    | `Array of (node_tag * tree array) option
     | `Tuple of tree array
-    | `Record of (string * hash * tree) array
+    | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
-    | `Variant of (string * hash * tree option)
-    | `Tuple_table of (node_tag array * tree array array)
-    | `Record_table of ((string * hash * node_tag) array * tree array array)
-    | `Matrix of (node_tag * int * tree array array) ]
+    | `Variant of (string option * hash * tree option)
+    | `Record_table of 
+	((string option * hash * node_tag) array * tree array array) option ]
     
 (* extend sign bit *)
 let make_signed x =
@@ -160,19 +157,22 @@ let make_unhash l =
     fun s ->
       let h = hash_name s in
       try 
-	let s' = Hashtbl.find tbl h in
-	if s <> s' then
-	  failwith (
-	    sprintf
-	      "Bi_io.make_unhash: \
-               %S and %S have the same hash, please pick another name"
-	      s s'
-	  )
-      with Not_found -> Hashtbl.add tbl h s
+	match Hashtbl.find tbl h with
+	    Some s' ->
+	      if s <> s' then
+		failwith (
+		  sprintf
+		    "Bi_io.make_unhash: \
+                     %S and %S have the same hash, please pick another name"
+		    s s'
+		)
+	  | None -> assert false
+
+      with Not_found -> Hashtbl.add tbl h (Some s)
   ) l;
   fun h ->
     try Hashtbl.find tbl h
-    with Not_found -> sprintf "#%08lx" (Int32.of_int h)
+    with Not_found -> None
 
 
 let write_tag buf x =
@@ -377,14 +377,18 @@ let rec write_tree buf tagged (x : tree) =
 	  write_tag buf string_tag;
 	write_untagged_string buf s
 
-    | `Array (node_tag, a) ->
+    | `Array o ->
 	if tagged then
 	  write_tag buf array_tag;
-	let len = Array.length a in
-	Bi_vint.write_uvint buf len;
-	if len > 0 then (
-	  write_tag buf node_tag;
-	  Array.iter (write_tree buf false) a
+	(match o with
+	     None -> Bi_vint.write_uvint buf 0
+	   | Some (node_tag, a) ->
+	       let len = Array.length a in
+	       Bi_vint.write_uvint buf len;
+	       if len > 0 then (
+		 write_tag buf node_tag;
+		 Array.iter (write_tree buf false) a
+	       )
 	)
 
     | `Tuple a ->
@@ -407,7 +411,7 @@ let rec write_tree buf tagged (x : tree) =
 	     None -> ()
 	   | Some v -> write_tree buf true v)
 
-    | `Variant (s, h, x) ->
+    | `Variant (o, h, x) ->
 	if tagged then
 	  write_tag buf variant_tag;
 	write_hashtag buf h (x <> None);
@@ -415,65 +419,32 @@ let rec write_tree buf tagged (x : tree) =
 	     None -> ()
 	   | Some v -> write_tree buf true v)
 
-    | `Tuple_table (node_tags, a) ->
-	if tagged then
-	  write_tag buf tuple_table_tag;
-	let row_num = Array.length a in
-	Bi_vint.write_uvint buf row_num;
-	if row_num > 0 then (
-	  let col_num = Array.length node_tags in
-	  Bi_vint.write_uvint buf col_num;
-	  Array.iter (write_tag buf) node_tags;
-	  for i = 0 to row_num - 1 do
-	    let ai = a.(i) in
-	    if Array.length ai <> col_num then
-	      invalid_arg "Bi_io.write_tree: Malformed `Tuple_table";
-	    for j = 0 to col_num - 1 do
-	      write_tree buf false ai.(j)
-	    done
-	  done
-	)
-
-    | `Record_table (fields, a) ->
+    | `Record_table o ->
 	if tagged then
 	  write_tag buf record_table_tag;
-	let row_num = Array.length a in
-	Bi_vint.write_uvint buf row_num;
-	if row_num > 0 then
-	  let col_num = Array.length fields in
-	  Bi_vint.write_uvint buf col_num;
-	  Array.iter (
-	    fun (name, h, tag) ->
-	      write_hashtag buf h true;
-	      write_tag buf tag
-	  ) fields;
-	  if row_num > 0 then (
-	    for i = 0 to row_num - 1 do
-	      let ai = a.(i) in
-	      if Array.length ai <> col_num then
-		invalid_arg "Bi_io.write_tree: Malformed `Record_table";
-	      for j = 0 to col_num - 1 do
-		write_tree buf false ai.(j)
-	      done
-	    done
-	  )
-
-    | `Matrix (node_tag, col_num, a) ->
-	if tagged then
-	  write_tag buf matrix_tag;
-	let row_num = Array.length a in
-	Bi_vint.write_uvint buf row_num;
-	if row_num > 0 then (
-	  Bi_vint.write_uvint buf col_num;
-	  write_tag buf node_tag;
-	  for i = 0 to row_num - 1 do
-	    let ai = a.(i) in
-	    if Array.length ai <> col_num then
-	      invalid_arg "Bi_io.write_tree: Malformed `Matrix";
-	    for j = 0 to col_num - 1 do
-	      write_tree buf false ai.(j)
-	    done
-	  done
+	(match o with
+	     None -> Bi_vint.write_uvint buf 0
+	   | Some (fields, a) ->
+	       let row_num = Array.length a in
+	       Bi_vint.write_uvint buf row_num;
+	       if row_num > 0 then
+		 let col_num = Array.length fields in
+		 Bi_vint.write_uvint buf col_num;
+		 Array.iter (
+		   fun (name, h, tag) ->
+		     write_hashtag buf h true;
+		     write_tag buf tag
+		 ) fields;
+		 if row_num > 0 then (
+		   for i = 0 to row_num - 1 do
+		     let ai = a.(i) in
+		     if Array.length ai <> col_num then
+		       invalid_arg "Bi_io.write_tree: Malformed `Record_table";
+		     for j = 0 to col_num - 1 do
+		       write_tree buf false ai.(j)
+		     done
+		   done
+		 )
 	)
 
 
@@ -498,15 +469,16 @@ let read_tag s pos =
   x
 
 let read_untagged_bool s pos =
-  if !pos >= String.length s then
+  let i = !pos in
+  if i >= String.length s then
     Bi_util.error "Corrupted data (bool)";
   let x =
-    match s.[!pos] with
+    match s.[i] with
 	'\x00' -> false
       | '\x01' -> true
       | _ -> Bi_util.error "Corrupted data (bool value)"
   in
-  incr pos;
+  pos := i + 1;
   x
 
 let read_untagged_char s pos =
@@ -606,11 +578,11 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
 
   let rec read_array s pos =
     let len = Bi_vint.read_uvint s pos in
-    if len = 0 then `Array (unknown_tag, [| |])
+    if len = 0 then `Array None
     else
       let tag = read_tag s pos in
       let read = reader_of_tag tag in
-      `Array (tag, Array.init len (fun _ -> read s pos))
+      `Array (Some (tag, Array.init len (fun _ -> read s pos)))
       
   and read_tuple s pos =
     let len = Bi_vint.read_uvint s pos in
@@ -651,25 +623,10 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
   and read_variant s pos =
     read_hashtag s pos read_variant_cont
       
-  and read_tuple_table s pos =
-    let row_num = Bi_vint.read_uvint s pos in
-    if row_num = 0 then
-      `Tuple_table ([||], [||])
-    else
-      let col_num = Bi_vint.read_uvint s pos in
-      let tags = Array.init col_num (fun _ -> read_tag s pos) in
-      let readers = Array.map reader_of_tag tags in
-      let a =
-	Array.init row_num
-	  (fun _ ->
-	     Array.init col_num (fun j -> readers.(j) s pos))
-      in
-      `Tuple_table (tags, a)
-
   and read_record_table s pos =
     let row_num = Bi_vint.read_uvint s pos in
     if row_num = 0 then
-      `Record_table ([| |], [| |])
+      `Record_table None
     else
       let col_num = Bi_vint.read_uvint s pos in
       let fields = 
@@ -688,21 +645,8 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
 	  (fun _ ->
 	     Array.init col_num (fun j -> readers.(j) s pos))
       in
-      `Record_table (fields, a)
+      `Record_table (Some (fields, a))
 	
-  and read_matrix s pos =
-    let row_num = Bi_vint.read_uvint s pos in
-    if row_num = 0 then
-      `Matrix (unknown_tag, 0, [| |])
-    else
-      let col_num = Bi_vint.read_uvint s pos in
-      let tag = read_tag s pos in
-      let reader = reader_of_tag tag in
-      let read i = reader s pos in
-      let a = Array.init row_num (fun _ -> Array.init col_num read) in
-      `Matrix (tag, col_num, a)
-      
-
   and reader_of_tag = function
       0 (* bool *) -> read_bool
     | 1 (* int8 *) -> read_int8
@@ -719,9 +663,7 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
     | 21 (* record *) -> read_record
     | 22 (* num_variant *) -> read_num_variant
     | 23 (* variant *) -> read_variant
-    | 24 (* tuple_table *) -> read_tuple_table
     | 25 (* record_table *) -> read_record_table
-    | 26 (* matrix *) -> read_matrix
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
   and read_tree s pos : tree =
@@ -791,20 +733,6 @@ and skip_variant_cont s pos h has_arg =
 and skip_variant s pos =
   read_hashtag s pos skip_variant_cont
     
-and skip_tuple_table s pos =
-  let row_num = Bi_vint.read_uvint s pos in
-  if row_num = 0 then
-    ()
-  else
-    let col_num = Bi_vint.read_uvint s pos in
-    let readers =
-      Array.init col_num (fun _ -> skipper_of_tag (read_tag s pos)) in
-    for i = 1 to row_num do
-      for j = 1 to col_num do
-	readers.(j) s pos
-      done
-    done
-      
 and skip_record_table s pos =
   let row_num = Bi_vint.read_uvint s pos in
   if row_num = 0 then
@@ -824,21 +752,6 @@ and skip_record_table s pos =
       done
     done
       
-and skip_matrix s pos =
-  let row_num = Bi_vint.read_uvint s pos in
-  if row_num = 0 then
-    ()
-  else
-    let col_num = Bi_vint.read_uvint s pos in
-    let tag = read_tag s pos in
-    let reader = skipper_of_tag tag in
-    for i = 1 to row_num do
-      for j = 1 to col_num do
-	reader s pos
-      done
-    done
-      
-      
 and skipper_of_tag = function
     0 (* bool *) -> skip_bool
   | 1 (* int8 *) -> skip_int8
@@ -855,9 +768,7 @@ and skipper_of_tag = function
   | 21 (* record *) -> skip_record
   | 22 (* num_variant *) -> skip_num_variant
   | 23 (* variant *) -> skip_variant
-  | 24 (* tuple_table *) -> skip_tuple_table
   | 25 (* record_table *) -> skip_record_table
-  | 26 (* matrix *) -> skip_matrix
   | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
 and skip s pos : unit =
@@ -892,52 +803,58 @@ struct
       | `Uvint x -> Atom (string_of_int x, atom)
       | `Svint x -> Atom (string_of_int x, atom)
       | `String s -> Atom (sprintf "%S" s, atom)
-      | `Array (_, a) -> List (("[", ";", "]", array), map format a)
+      | `Array None -> Atom ("[]", atom)
+      | `Array (Some (_, a)) -> List (("[", ",", "]", array), map format a)
       | `Tuple a -> List (("(", ",", ")", tuple), map format a)
-      | `Record a -> List (("{", ";", "}", record), map format_field a)
+      | `Record a -> List (("{", ",", "}", record), map format_field a)
       | `Num_variant (i, o) ->
-	  let cons = Atom (sprintf "`%i" i, atom) in
+	  let suffix =
+	    if i = 0 then ""
+	    else string_of_int i
+	  in
 	  (match o with
-	       None -> cons
-	     | Some x -> Label ((cons, label), format x))
-      | `Variant (s, _, o) ->
-	  let cons = Atom (sprintf "`%s" s, atom) in
+	       None -> Atom ("None" ^ suffix, atom)
+	     | Some x ->
+		 let cons = Atom ("Some" ^ suffix, atom) in
+		 Label ((cons, label), format x))
+      | `Variant (opt_name, h, o) ->
+	  let name =
+	    match opt_name with
+		None -> sprintf "#%08lx" (Int32.of_int h)
+	      | Some s -> sprintf "<%s>" (String.escaped s)
+	  in
+	  let cons = Atom (name, atom) in
 	  (match o with
 	       None -> cons
 	     | Some x -> Label ((cons, label), format x))
 	  
-      | `Tuple_table (_, aa) -> 
-	  let tuple_array =
-	    `Array (tuple_tag, Array.map (fun a -> `Tuple a) aa) in
-	  format tuple_array
-	    
-      | `Record_table (header, aa) ->
+      | `Record_table None -> Atom ("[]", atom)
+      | `Record_table (Some (header, aa)) ->
 	  let record_array =
 	    `Array (
-	      record_tag,
-	      Array.map (
-		fun a ->
-		  `Record (
-		    Array.mapi (
-		      fun i x -> 
-			let s, h, _ = header.(i) in
-			(s, h, x)
-		    ) a
-		  )
-	      ) aa
+	      Some (
+		record_tag,
+		Array.map (
+		  fun a ->
+		    `Record (
+		      Array.mapi (
+			fun i x -> 
+			  let s, h, _ = header.(i) in
+			  (s, h, x)
+		      ) a
+		    )
+		) aa
+	      )
 	    ) in
-	  format record_array
+	    format record_array
 	    
-      | `Matrix (cell_tag, _, aa) ->
-	  let array_array =
-	    `Array (
-	      array_tag,
-	      Array.map (fun a -> `Array (cell_tag, a)) aa
-	    ) in
-	  format array_array
-	    
-  and format_field (s, h, x) =
-    Label ((Atom (sprintf "%s =" s, atom), label), format x)
+  and format_field (o, h, x) =
+    let s =
+      match o with
+	  None -> sprintf "#%08lx" (Int32.of_int h)
+	| Some s -> sprintf "<%s>" (String.escaped s)
+    in
+    Label ((Atom (sprintf "%s:" s, atom), label), format x)
 end
 
 

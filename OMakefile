@@ -8,7 +8,7 @@ FILES[] =
   bi_io
 
 OCAMLFLAGS = -dtypes
-OCAMLPACKS = unix easy-format
+OCAMLPACKS = unix easy-format str
 
 
 .DEFAULT: biniou.cma biniou.cmxa test_biniou bdump

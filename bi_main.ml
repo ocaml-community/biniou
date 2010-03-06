@@ -2,52 +2,30 @@
 
 open Bi_io
 
-let test_tree =
+let test_tree : tree =
   `Tuple [|
     `Num_variant (0, None);
     `Num_variant (0, Some (`Svint 127));
-    `Array (svint_tag, [| `Svint 1; `Svint 2 |]);
+    `Array (Some (svint_tag, [| `Svint 1; `Svint 2 |]));
     `Record [|
-      ("abc", hash_name "abc", `String "hello");
-      ("number", hash_name "number", `Svint 123);
-      ("variant1", hash_name "variant1", 
-       `Variant ("Foo", hash_name "Foo", Some (`Svint (-456))));
-      ("variant2", hash_name "variant2", 
-       `Variant ("Bar", hash_name "Bar", None));
+      (Some "abc", hash_name "abc", `String "hello");
+      (Some "number", hash_name "number", `Svint 123);
+      (Some "variant1", hash_name "variant1", 
+       `Variant (Some "Foo", hash_name "Foo", Some (`Svint (-456))));
+      (Some "variant2", hash_name "variant2", 
+       `Variant (Some "Bar", hash_name "Bar", None));
     |];
-    `Tuple_table (
-      [| svint_tag; string_tag |],
-      [|
-	[| `Svint 1; `String "first" |];
-	[| `Svint 2; `String "second" |];
-	[| `Svint 3; `String "third" |];
-	[| `Svint 4; `String "fourth" |];
-      |]
-    );
     `Record_table (
-      [| ("name", hash_name "name", string_tag);
-	 ("age", hash_name "age", uvint_tag) |],
-      [|
-	[| `String "Francisco"; `Uvint 67 |];
-	[| `String "Mateo"; `Uvint 23 |];
-	[| `String "Clara"; `Uvint 27 |];
-	[| `String "Jose"; `Uvint 39 |];
-      |]
-    );
-    `Matrix (
-      float64_tag, 3,
-      [|
-	[| `Float64 1.234567; `Float64 2.345678; `Float64 3.456789 |]; 
-        [| `Float64 4.567890; `Float64 5.678901; `Float64 6.789012 |]; 
-        [| `Float64 7.890123; `Float64 8.901234; `Float64 9.012345 |]; 
-        [| `Float64 10.123456; `Float64 11.234567; `Float64 12.345678 |]
-(*
-	[| `Float64 1.; `Float64 2.; `Float64 3. |]; 
-        [| `Float64 4.; `Float64 5.; `Float64 6. |]; 
-        [| `Float64 7.; `Float64 8.; `Float64 9. |]; 
-        [| `Float64 10.; `Float64 11.; `Float64 12. |]
-*)
-      |]
+      Some (
+	[| (Some "name", hash_name "name", string_tag);
+	   (Some "age", hash_name "age", uvint_tag) |],
+	[|
+	  [| `String "Francisco"; `Uvint 67 |];
+	  [| `String "Mateo"; `Uvint 23 |];
+	  [| `String "Clara"; `Uvint 27 |];
+	  [| `String "Jose"; `Uvint 39 |];
+	|]
+      )
     )
 |]
 

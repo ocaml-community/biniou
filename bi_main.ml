@@ -26,6 +26,37 @@ let test_tree : tree =
 	  [| `String "Jose"; `Uvint 39 |];
 	|]
       )
+    );
+    `Array (
+      Some (
+	array_tag,
+	[|
+	  `Array (
+	    Some (
+	      float64_tag,
+	      [| `Float64 1.234567; `Float64 2.345678; `Float64 3.456789; |]
+	    )
+	  );
+	  `Array (
+	    Some (
+	      float64_tag,
+	      [| `Float64 4.567890; `Float64 5.678901; `Float64 6.789012 |]
+	    )
+	  );
+	  `Array (
+	    Some (
+	      float64_tag,
+	      [| `Float64 7.890123; `Float64 8.901234; `Float64 9.012345 |]
+	    )
+	  );
+	  `Array (
+	    Some (
+	      float64_tag,
+	      [| `Float64 10.123456; `Float64 11.234567; `Float64 12.345678 |]
+	    )
+	  );
+	|]
+      )
     )
 |]
 
@@ -135,7 +166,7 @@ let wr_perf () =
 
 let _ =
   let s = string_of_tree test_tree in
-  print_string (Bi_io.inspect s);
+  Bi_io.print_view s;
   print_newline ();
 
   let oc = open_out_bin "test.bin" in

@@ -55,6 +55,7 @@ let () =
 	None -> stdin
       | Some s -> open_in_bin s
   in
-  print_endline (Bi_io.inspect ~unhash (load ic));
+  Bi_io.print_view ~unhash (load ic);
+  print_newline ();
   close_in ic
 

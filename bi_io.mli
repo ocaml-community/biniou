@@ -97,7 +97,8 @@ type tree =
     | `Variant of (string option * hash * tree option)
     | `Record_table of 
 	((string option * hash * node_tag) array * tree array array) option ]
-  (* Sample data type intended for testing *)
+  (* Tree representing serialized data, useful for testing
+     and for untyped transformations. *)
 
 val string_of_tree : tree -> string
   (* Testing *)
@@ -105,5 +106,10 @@ val string_of_tree : tree -> string
 val tree_of_string : ?unhash:(hash -> string option) -> string -> tree
   (* Testing *)
 
-val inspect : ?unhash:(hash -> string option) -> string -> string
+val view :
+  ?unhash:(hash -> string option) -> string -> string
+val print_view :
+  ?unhash:(hash -> string option) -> string -> unit
+val output_view :
+  ?unhash:(hash -> string option) -> out_channel -> string -> unit
   (* Print human-readable representation of the data *)

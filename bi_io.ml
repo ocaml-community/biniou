@@ -858,5 +858,11 @@ struct
 end
 
 
-let inspect ?unhash s =
+let view ?unhash s =
   Easy_format.Pretty.to_string (Pp.format (tree_of_string ?unhash s))
+
+let print_view ?unhash s =
+  Easy_format.Pretty.to_stdout (Pp.format (tree_of_string ?unhash s))
+
+let output_view ?unhash oc s =
+  Easy_format.Pretty.to_channel oc (Pp.format (tree_of_string ?unhash s))

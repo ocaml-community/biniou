@@ -1,47 +1,59 @@
 (* $Id$ *)
 
-(* "Unsafe" buffer type *)
-
 type t = {
   mutable s : string;
   mutable max_len : int;
   mutable len : int;
-  init_len : int
+  init_len : int;
+  make_room : (t -> int -> unit);
 }
 
-let create n = {
+let really_extend b n =
+  let slen0 = b.max_len in
+  let reqlen = b.len + n in
+  let slen =
+    let x = 2 * slen0 in
+    if x <= Sys.max_string_length then x
+    else
+      if Sys.max_string_length < reqlen then
+	invalid_arg "Buf.extend: reached Sys.max_string_length"
+      else
+	Sys.max_string_length
+  in
+  let s = String.create slen in
+  String.blit b.s 0 s 0 b.len;
+  b.s <- s;
+  b.max_len <- slen
+
+let flush_to_channel oc b n =
+  output oc b.s 0 b.len;
+  b.len <- 0;
+  if n > b.max_len then
+    really_extend b n
+
+
+let create ?(make_room = really_extend) n = {
   s = String.create n;
   max_len = n;
   len = 0;
-  init_len = n
+  init_len = n;
+  make_room = make_room;
 }
 
+let create_channel_writer ?(len = 4096) oc =
+  create ~make_room:(flush_to_channel oc) len
+
+let flush_channel_writer b =
+  b.make_room b 0
+
+
 (*
-  Guarantee that the buffer string has enough room for n additional bytes
-  by reallocating a larger buffer string if needed.
+  Guarantee that the buffer string has enough room for n additional bytes.
 *)
 let extend b n =
   if b.len + n > b.max_len then
-    let slen0 = b.max_len in
-    let reqlen = b.len + n in
-    let slen =
-      let x = 2 * slen0 in
-      if x <= Sys.max_string_length then x
-      else
-	if Sys.max_string_length < reqlen then
-	  invalid_arg "Buf.extend: reached Sys.max_string_length"
-	else
-	  Sys.max_string_length
-    in
-    let s = String.create slen in
-    String.blit b.s 0 s 0 b.len;
-    b.s <- s;
-    b.max_len <- slen
-
-(*
-  Add n arbitrary bytes to the buffer and return the first position
-  of the allocated substring.
-*)
+    b.make_room b n
+      
 let alloc b n =
   extend b n;
   let pos = b.len in

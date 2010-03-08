@@ -21,7 +21,7 @@ val record_table_tag : node_tag (* 25  *)
 
 type hash = int (* 31 bits *)
 val hash_name : string -> hash
-val write_hashtag : Bi_buf.t -> hash -> bool -> unit
+val write_hashtag : Bi_outbuf.t -> hash -> bool -> unit
 val string_of_hashtag : hash -> bool -> string
 val read_hashtag : 
   string -> int ref ->
@@ -32,35 +32,35 @@ val read_field_hashtag : string -> int ref -> hash
 val make_unhash : string list -> (int -> string option)
 
 type int7 = int
-val write_numtag : Bi_buf.t -> int7 -> bool -> unit
+val write_numtag : Bi_outbuf.t -> int7 -> bool -> unit
 val read_numtag :
   string -> int ref ->
   (string -> int ref -> int7 -> bool -> 'a) -> 'a
 
-val write_tag : Bi_buf.t -> node_tag -> unit
-val write_untagged_bool : Bi_buf.t -> bool -> unit
-val write_untagged_char : Bi_buf.t -> char -> unit
-val write_untagged_int8 : Bi_buf.t -> int -> unit
-val write_untagged_int16 : Bi_buf.t -> int -> unit
-val write_untagged_int32 : Bi_buf.t -> int32 -> unit
-val write_untagged_int64 : Bi_buf.t -> int64 -> unit
-val write_untagged_int128 : Bi_buf.t -> string -> unit
-val write_untagged_float64 : Bi_buf.t -> float -> unit
-val write_untagged_string : Bi_buf.t -> string -> unit
-val write_untagged_uvint : Bi_buf.t -> int -> unit
-val write_untagged_svint : Bi_buf.t -> int -> unit
+val write_tag : Bi_outbuf.t -> node_tag -> unit
+val write_untagged_bool : Bi_outbuf.t -> bool -> unit
+val write_untagged_char : Bi_outbuf.t -> char -> unit
+val write_untagged_int8 : Bi_outbuf.t -> int -> unit
+val write_untagged_int16 : Bi_outbuf.t -> int -> unit
+val write_untagged_int32 : Bi_outbuf.t -> int32 -> unit
+val write_untagged_int64 : Bi_outbuf.t -> int64 -> unit
+val write_untagged_int128 : Bi_outbuf.t -> string -> unit
+val write_untagged_float64 : Bi_outbuf.t -> float -> unit
+val write_untagged_string : Bi_outbuf.t -> string -> unit
+val write_untagged_uvint : Bi_outbuf.t -> int -> unit
+val write_untagged_svint : Bi_outbuf.t -> int -> unit
 
-val write_bool : Bi_buf.t -> bool -> unit
-val write_char : Bi_buf.t -> char -> unit
-val write_int8 : Bi_buf.t -> int -> unit
-val write_int16 : Bi_buf.t -> int -> unit
-val write_int32 : Bi_buf.t -> int32 -> unit
-val write_int64 : Bi_buf.t -> int64 -> unit
-val write_int128 : Bi_buf.t -> string -> unit
-val write_float64 : Bi_buf.t -> float -> unit
-val write_string : Bi_buf.t -> string -> unit
-val write_uvint : Bi_buf.t -> int -> unit
-val write_svint : Bi_buf.t -> int -> unit
+val write_bool : Bi_outbuf.t -> bool -> unit
+val write_char : Bi_outbuf.t -> char -> unit
+val write_int8 : Bi_outbuf.t -> int -> unit
+val write_int16 : Bi_outbuf.t -> int -> unit
+val write_int32 : Bi_outbuf.t -> int32 -> unit
+val write_int64 : Bi_outbuf.t -> int64 -> unit
+val write_int128 : Bi_outbuf.t -> string -> unit
+val write_float64 : Bi_outbuf.t -> float -> unit
+val write_string : Bi_outbuf.t -> string -> unit
+val write_uvint : Bi_outbuf.t -> int -> unit
+val write_svint : Bi_outbuf.t -> int -> unit
 
 val read_tag : string -> int ref -> node_tag
 val read_untagged_bool : string -> int ref -> bool

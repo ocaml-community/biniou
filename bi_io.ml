@@ -2,7 +2,7 @@
 
 open Printf
 
-open Bi_buf
+open Bi_outbuf
 
 type node_tag = int
 
@@ -80,7 +80,7 @@ let hash_name s =
 *)
 let write_hashtag buf h has_arg =
   let h = h land 0x7fffffff in
-  let pos = Bi_buf.alloc buf 4 in
+  let pos = Bi_outbuf.alloc buf 4 in
   let s = buf.s in
   String.unsafe_set s (pos+3) (Char.chr (h land 0xff));
   let h = h lsr 8 in
@@ -96,24 +96,22 @@ let write_hashtag buf h has_arg =
   )
 
 let string_of_hashtag h has_arg =
-  let buf = Bi_buf.create 4 in
+  let buf = Bi_outbuf.create 4 in
   write_hashtag buf h has_arg;
-  Bi_buf.contents buf
+  Bi_outbuf.contents buf
 
-let read_hashtag s pos cont =
-  let i = !pos in
-  if i + 4 > String.length s then
-    Bi_util.error "Corrupted data (hashtag)";
+let read_hashtag ib cont =
+  let i = Bi_inbuf.read ib 4 in
+  let s = ib.Bi_inbuf.s in
   let x0 = Char.code s.[i] in
   let has_arg = x0 >= 0x80 in
   let x1 = (x0 land 0x7f) lsl 24 in
   let x2 = (Char.code s.[i+1]) lsl 16 in
   let x3 = (Char.code s.[i+2]) lsl 8 in
   let x4 = Char.code s.[i+3] in
-  pos := !pos + 4;
   let h = make_signed (x1 lor x2 lor x3 lor x4) in
   
-  cont s pos h has_arg
+  cont ib h has_arg
 
 
 let read_field_hashtag s pos =
@@ -141,7 +139,7 @@ let write_numtag buf i has_arg =
     if has_arg then i lor 0x80
     else i
   in
-  Bi_buf.add_char buf (Char.chr x)
+  Bi_outbuf.add_char buf (Char.chr x)
 
 let read_numtag s pos cont =
   if !pos >= String.length s then
@@ -176,42 +174,42 @@ let make_unhash l =
 
 
 let write_tag buf x =
-  Bi_buf.add_char buf (Char.chr x)
+  Bi_outbuf.add_char buf (Char.chr x)
 
 let write_untagged_bool buf x =
-  Bi_buf.add_char buf (if x then '\x01' else '\x00')
+  Bi_outbuf.add_char buf (if x then '\x01' else '\x00')
 
 let write_untagged_char buf x =
-  Bi_buf.add_char buf x
+  Bi_outbuf.add_char buf x
 
 let write_untagged_int8 buf x =
-  Bi_buf.add_char buf (Char.chr x)
+  Bi_outbuf.add_char buf (Char.chr x)
 
 let write_untagged_int16 buf x =
-  Bi_buf.add_char buf (Char.chr (x lsr 8));
-  Bi_buf.add_char buf (Char.chr (x land 0xff))
+  Bi_outbuf.add_char buf (Char.chr (x lsr 8));
+  Bi_outbuf.add_char buf (Char.chr (x land 0xff))
 
 let write_untagged_int32 buf x =
   let high = Int32.to_int (Int32.shift_right_logical x 16) in
-  Bi_buf.add_char buf (Char.chr (high lsr 8));
-  Bi_buf.add_char buf (Char.chr (high land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (high lsr 8));
+  Bi_outbuf.add_char buf (Char.chr (high land 0xff));
   let low = Int32.to_int x in
-  Bi_buf.add_char buf (Char.chr ((low lsr 8) land 0xff));
-  Bi_buf.add_char buf (Char.chr (low land 0xff))
+  Bi_outbuf.add_char buf (Char.chr ((low lsr 8) land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (low land 0xff))
     
 let write_untagged_int64 buf x =
   let x4 = Int64.to_int (Int64.shift_right_logical x 48) in
-  Bi_buf.add_char buf (Char.chr (x4 lsr 8));
-  Bi_buf.add_char buf (Char.chr (x4 land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (x4 lsr 8));
+  Bi_outbuf.add_char buf (Char.chr (x4 land 0xff));
   let x3 = Int64.to_int (Int64.shift_right_logical x 32) in
-  Bi_buf.add_char buf (Char.chr ((x3 lsr 8) land 0xff));
-  Bi_buf.add_char buf (Char.chr (x3 land 0xff));
+  Bi_outbuf.add_char buf (Char.chr ((x3 lsr 8) land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (x3 land 0xff));
   let x2 = Int64.to_int (Int64.shift_right_logical x 16) in
-  Bi_buf.add_char buf (Char.chr ((x2 lsr 8) land 0xff));
-  Bi_buf.add_char buf (Char.chr (x2 land 0xff));
+  Bi_outbuf.add_char buf (Char.chr ((x2 lsr 8) land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (x2 land 0xff));
   let x1 = Int64.to_int x in
-  Bi_buf.add_char buf (Char.chr ((x1 lsr 8) land 0xff));
-  Bi_buf.add_char buf (Char.chr (x1 land 0xff))
+  Bi_outbuf.add_char buf (Char.chr ((x1 lsr 8) land 0xff));
+  Bi_outbuf.add_char buf (Char.chr (x1 land 0xff))
 
 
 let float_endianness =
@@ -240,7 +238,7 @@ let read_untagged_float64 s pos =
   (Obj.obj x : float)
 
 let write_untagged_float64 buf x =
-  let i = Bi_buf.alloc buf 8 in
+  let i = Bi_outbuf.alloc buf 8 in
   let s = buf.s in
   (match float_endianness with
        `Little ->
@@ -259,21 +257,21 @@ let () =
   let y = read_untagged_float64 s (ref 0) in
   if x <> y then
     assert false;
-  let buf = Bi_buf.create 8 in
+  let buf = Bi_outbuf.create 8 in
   write_untagged_float64 buf x;
-  if Bi_buf.contents buf <> s then
+  if Bi_outbuf.contents buf <> s then
     assert false
 
 
 
 let write_untagged_string buf s =
   Bi_vint.write_uvint buf (String.length s);
-  Bi_buf.add_string buf s
+  Bi_outbuf.add_string buf s
 
 let write_untagged_int128 buf s =
   if String.length s <> 16 then
     invalid_arg "Bi_io.write_untagged_int128";
-  Bi_buf.add_string buf s
+  Bi_outbuf.add_string buf s
 
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
@@ -453,9 +451,9 @@ and write_field buf (s, h, x) =
   write_tree buf true x
 
 let string_of_tree x =
-  let buf = Bi_buf.create 1000 in
+  let buf = Bi_outbuf.create 1000 in
   write_tree buf true x;
-  Bi_buf.contents buf
+  Bi_outbuf.contents buf
 
 let tag_error () =
   Bi_util.error "Corrupted data (tag)"

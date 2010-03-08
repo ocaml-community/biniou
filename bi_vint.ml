@@ -3,7 +3,33 @@
 (* Variable-byte encoding of 8-byte integers (starting from 0). *)
 
 open Printf
-open Bi_buf
+open Bi_outbuf
+
+(* Word size in bytes *)
+let word_size =
+  if 0x7fffffff = -1 then 4
+  else 8
+
+(* Maximum int size in bits *)
+let max_int_bits =
+  8 * word_size - 1
+
+(* Maximum length of a vint decodable into an OCaml int,
+   maximum value of the highest byte of the largest vint supported *)
+let max_vint_bytes, max_highest_byte =
+  if max_int_bits mod 7 = 0 then
+    let m = max_int_bits / 7 in
+    let h = 1 lsl 7 - 1 in
+    m, h
+  else
+    let m = max_int_bits / 7 + 1 in
+    let h = 1 lsl (max_int_bits mod 7) - 1 in
+    m, h
+
+let check_highest_byte x =
+  if x > max_highest_byte then
+    Bi_util.error "Vint exceeding range of OCaml ints"
+
 
 let unsigned_of_signed i =
   if i >= 0 then i lsl 1
@@ -18,15 +44,15 @@ let signed_of_unsigned i =
   else - (i lsr 1)
 
 let write_uvint buf i  =
-  Bi_buf.extend buf 9; (* makes room for at most 9 bytes *)
+  Bi_outbuf.extend buf max_vint_bytes;
 
   let x = ref i in
   while !x lsr 7 <> 0 do
     let byte = 0x80 lor (!x land 0x7f) in
-    Bi_buf.unsafe_add_char buf (Char.chr byte);
+    Bi_outbuf.unsafe_add_char buf (Char.chr byte);
     x := !x lsr 7;
   done;
-  Bi_buf.unsafe_add_char buf (Char.chr !x)
+  Bi_outbuf.unsafe_add_char buf (Char.chr !x)
     
 let write_svint buf i =
   write_uvint buf (unsigned_of_signed i)
@@ -35,55 +61,87 @@ let write_svint buf i =
 let uvint_of_int ?buf i =
   let buffer = 
     match buf with
-      | None -> Bi_buf.create 10 
+      | None -> Bi_outbuf.create 10 
       | Some b -> b
   in
-  Bi_buf.clear buffer;
+  Bi_outbuf.clear buffer;
   write_uvint buffer i;
-  Bi_buf.contents buffer
+  Bi_outbuf.contents buffer
 
 let svint_of_int ?buf i =
   uvint_of_int ?buf (unsigned_of_signed i)
 
-let get s i =
-  if i >= 0 && i < String.length s then String.unsafe_get s i
-  else
-    Bi_util.error "Bi_vint.read_int: corrupted data"
+
+let read_uvint ib =
+  let avail = Bi_inbuf.try_preread ib max_vint_bytes in
+  let s = ib.Bi_inbuf.s in
+  let pos = ib.Bi_inbuf.pos in
+  let x = ref 0 in
+  (try
+     for i = 0 to avail - 1 do
+       let b = Char.code s.[pos+i] in
+       x := ((b land 0x7f) lsl (7*i)) lor !x;
+       if b < 0x80 then (
+	 ib.Bi_inbuf.pos <- pos + i + 1;
+	 if i + 1 = max_vint_bytes then
+	   check_highest_byte b;
+	 raise Exit
+       )
+     done;
+     Bi_util.error "Unterminated vint or vint exceeding range of OCaml ints"
+   with Exit -> ()
+  );
+  !x
 
 
-let read_uvint s pos =
-  let rec aux s pos x =
-    let b = Char.code (get s !pos) in
-    incr pos;
-    if b >= 0x80 then
-      (b land 0x7f) lor ((aux s pos x) lsl 7)
-    else
-      b
-  in
-  aux s pos 0
-
-let read_svint s pos =
-  signed_of_unsigned (read_uvint s pos)
+let read_svint ib =
+  signed_of_unsigned (read_uvint ib)
 
 (* convenience *)
-let int_of_uvint s = read_uvint s (ref 0)
-let int_of_svint s = read_svint s (ref 0)
+let int_of_uvint s = read_uvint (Bi_inbuf.create_string_reader s)
+let int_of_svint s = read_svint (Bi_inbuf.create_string_reader s)
 
-let rec read_list s pos =
-  if !pos < String.length s then
-    let x = read_uvint s pos in
-    x :: read_list s pos
+
+(*
+  Testing
+*)
+
+let string_of_list l =
+  let ob = Bi_outbuf.create 100 in
+  List.iter (write_uvint ob) l;
+  Bi_outbuf.contents ob
+
+let rec read_list ib =
+  if ib.Bi_inbuf.pos < ib.Bi_inbuf.len then
+    let x = read_uvint ib in
+    x :: read_list ib
   else
     []
 
-let test () =
-  List.iter (
-    fun i -> 
-      printf "%i %x\n%s\n" i i
-	(Bi_util.print_bits (Bi_util.string8_of_int i))
-  )
-    (read_list "\128\000\255\255\255\127" (ref 0))
+let list_of_string s =
+  read_list (Bi_inbuf.create_string_reader s)
 
-(*
-let _ = test ()
-*)
+let print_list l =
+  List.iter (
+    fun i ->
+      printf "dec %i\nhex %x\nbin %s\n" i i
+	(Bi_util.print_bits (Bi_util.string8_of_int i))
+  ) l
+
+let test () =
+  let l = [
+    0;
+    0xfffffff;
+    0x0102030405060708;
+    max_int;
+    min_int
+  ] in
+  printf "Input:\n";
+  print_list l;
+  let l' = list_of_string (string_of_list l) in
+  printf "Output:\n";
+  print_list l';
+  if l = l' then
+    print_endline "SUCCESS"
+  else
+    print_endline "FAILURE"

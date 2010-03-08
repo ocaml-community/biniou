@@ -3,7 +3,8 @@ BYTE_ENABLED = true
 
 FILES[] =
   bi_util
-  bi_buf
+  bi_outbuf
+  bi_inbuf
   bi_vint
   bi_io
 

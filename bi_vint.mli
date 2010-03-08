@@ -38,14 +38,14 @@
           (all ints except min_int are supported)
 *)
 
-val uvint_of_int : ?buf:Bi_buf.t -> int -> string
-val svint_of_int : ?buf:Bi_buf.t -> int -> string
+val uvint_of_int : ?buf:Bi_outbuf.t -> int -> string
+val svint_of_int : ?buf:Bi_outbuf.t -> int -> string
 
 val int_of_uvint : string -> int
 val int_of_svint : string -> int
 
-val write_uvint : Bi_buf.t -> int -> unit
-val write_svint : Bi_buf.t -> int -> unit
+val write_uvint : Bi_outbuf.t -> int -> unit
+val write_svint : Bi_outbuf.t -> int -> unit
 
-val read_uvint : string -> int ref -> int
-val read_svint : string -> int ref -> int
+val read_uvint : Bi_inbuf.t -> int
+val read_svint : Bi_inbuf.t -> int

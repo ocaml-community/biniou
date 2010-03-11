@@ -1,4 +1,5 @@
-An extensible serialization format.
+            Biniou - A binary serialization format for evolving protocols
+
 
 Main features:
 
@@ -23,9 +24,7 @@ VAL ::= ATOM
       | RECORD
       | NUM_VARIANT
       | VARIANT
-      | TUPLE_TABLE
       | RECORD_TABLE
-      | MATRIX
 
 ATOM ::= int8
        | int16
@@ -44,9 +43,7 @@ NUM_VARIANT ::= NUM_VARIANT_TAG BOXVAL?
 VARIANT ::= VARIANT_TAG BOXVAL?
 TUPLE ::= LENGTH BOXVAL*
 RECORD ::= LENGTH (FIELD_TAG BOXVAL)*
-TUPLE_TABLE ::= LENGTH (LENGTH TAG* (VAL*)*)?               // list of tuples
 RECORD_TABLE ::= LENGTH (LENGTH (FIELD_TAG TAG)* (VAL*)*)?  // list of records
-MATRIX ::= LENGTH (LENGTH TAG (VAL*)*)?          // rectangular 2D array
 
 TAG ::= int8
 LENGTH ::= uvint
@@ -58,6 +55,7 @@ FIELD_TAG ::= int32         // 31-bit hash
 Byte order is big-endian.
 
 Values for TAG:
+bool: 0
 int8: 1
 int16: 2
 int32: 3
@@ -72,9 +70,7 @@ tuple: 20
 record: 21
 numeric variant: 22
 variant: 23
-tuple table: 24
 record_table: 25
-matrix: 26
 
 Variant and field tags are stored using 4 bytes.
 The first bit is 0 for variants without an argument, and 1 for

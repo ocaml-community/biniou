@@ -24,18 +24,18 @@ val hash_name : string -> hash
 val write_hashtag : Bi_outbuf.t -> hash -> bool -> unit
 val string_of_hashtag : hash -> bool -> string
 val read_hashtag : 
-  string -> int ref ->
-  (string -> int ref -> hash -> bool -> 'a) -> 'a
+  Bi_inbuf.t ->
+  (Bi_inbuf.t -> hash -> bool -> 'a) -> 'a
 
-val read_field_hashtag : string -> int ref -> hash
+val read_field_hashtag : Bi_inbuf.t -> hash
 
 val make_unhash : string list -> (int -> string option)
 
 type int7 = int
 val write_numtag : Bi_outbuf.t -> int7 -> bool -> unit
 val read_numtag :
-  string -> int ref ->
-  (string -> int ref -> int7 -> bool -> 'a) -> 'a
+  Bi_inbuf.t ->
+  (Bi_inbuf.t -> int7 -> bool -> 'a) -> 'a
 
 val write_tag : Bi_outbuf.t -> node_tag -> unit
 val write_untagged_bool : Bi_outbuf.t -> bool -> unit
@@ -62,20 +62,20 @@ val write_string : Bi_outbuf.t -> string -> unit
 val write_uvint : Bi_outbuf.t -> int -> unit
 val write_svint : Bi_outbuf.t -> int -> unit
 
-val read_tag : string -> int ref -> node_tag
-val read_untagged_bool : string -> int ref -> bool
-val read_untagged_char : string -> int ref -> char
-val read_untagged_int8 : string -> int ref -> int
-val read_untagged_int16 : string -> int ref -> int
-val read_untagged_int32 : string -> int ref -> int32
-val read_untagged_int64 : string -> int ref -> int64
-val read_untagged_int128 : string -> int ref -> string
-val read_untagged_float64 : string -> int ref -> float
-val read_untagged_string : string -> int ref -> string
-val read_untagged_uvint : string -> int ref -> int
-val read_untagged_svint : string -> int ref -> int
+val read_tag : Bi_inbuf.t -> node_tag
+val read_untagged_bool : Bi_inbuf.t -> bool
+val read_untagged_char : Bi_inbuf.t -> char
+val read_untagged_int8 : Bi_inbuf.t -> int
+val read_untagged_int16 : Bi_inbuf.t -> int
+val read_untagged_int32 : Bi_inbuf.t -> int32
+val read_untagged_int64 : Bi_inbuf.t -> int64
+val read_untagged_int128 : Bi_inbuf.t -> string
+val read_untagged_float64 : Bi_inbuf.t -> float
+val read_untagged_string : Bi_inbuf.t -> string
+val read_untagged_uvint : Bi_inbuf.t -> int
+val read_untagged_svint : Bi_inbuf.t -> int
 
-val skip : string -> int ref -> unit
+val skip : Bi_inbuf.t -> unit
   (* read and discard a value (useful for skipping unknown record fields) *)
 
 type tree =

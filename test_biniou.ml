@@ -1,5 +1,7 @@
 (* $Id$ *)
 
+open Printf
+
 open Bi_io
 
 let test_tree : tree =
@@ -138,18 +140,31 @@ let native_test_tree =
     |]
   )
 
-let test_marshal () =
-  let s = Marshal.to_string native_test_tree [] in
-  s, String.length s
+let marshal x = Marshal.to_string x [Marshal.No_sharing]
+let unmarshal s = Marshal.from_string s 0
+
+let native_test_tree_marshalled = marshal native_test_tree
 
 let marshal_wr_perf n =
   for i = 1 to n do
-    ignore (Marshal.to_string native_test_tree [Marshal.No_sharing])
+    ignore (marshal native_test_tree)
   done
+
+let marshal_rd_perf n =
+  for i = 1 to n do
+    ignore (unmarshal native_test_tree_marshalled)
+  done
+
+let test_tree_binioued = string_of_tree test_tree
 
 let biniou_wr_perf n =
   for i = 1 to n do
     ignore (string_of_tree test_tree)
+  done
+
+let biniou_rd_perf n =
+  for i = 1 to n do
+    ignore (tree_of_string test_tree_binioued)
   done
 
 let time name f x =
@@ -160,17 +175,25 @@ let time name f x =
 
 let wr_perf () =
   let n = 1_000_000 in
-  time "biniou" biniou_wr_perf n;
-  time "marshal" marshal_wr_perf n
+  time "wr biniou" biniou_wr_perf n;
+  time "wr marshal" marshal_wr_perf n
+
+let rd_perf () =
+  let n = 1_000_000 in
+  time "rd biniou" biniou_rd_perf n;
+  time "rd marshal" marshal_rd_perf n
 
 
 let _ =
   let s = string_of_tree test_tree in
   Bi_io.print_view s;
   print_newline ();
+  if s <> string_of_tree (tree_of_string s) then
+    printf "Error in writing or reading\n%!";
 
   let oc = open_out_bin "test.bin" in
   output_string oc s;
   close_out oc;
 
-  wr_perf ()
+  wr_perf ();
+  rd_perf ()

@@ -3,19 +3,19 @@
 (* "Unsafe" buffer type *)
 
 type t = {
-  mutable s : string;
+  mutable o_s : string;
     (* buffer string *)
 
-  mutable max_len : int;
+  mutable o_max_len : int;
     (* = [String.length s] *)
 
-  mutable len : int;
+  mutable o_len : int;
     (* length of data already written = current position *)
 
-  init_len : int;
+  o_init_len : int;
     (* initial length of the buffer *)
 
-  make_room : t -> int -> unit;
+  o_make_room : t -> int -> unit;
   (*
     [make_room buf n] must provide space for at least the requested 
     number of bytes [n], typically by reallocating a larger buffer 

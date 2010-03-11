@@ -3,6 +3,7 @@
 open Printf
 
 open Bi_outbuf
+open Bi_inbuf
 
 type node_tag = int
 
@@ -78,10 +79,10 @@ let hash_name s =
            record fields.
 
 *)
-let write_hashtag buf h has_arg =
+let write_hashtag ob h has_arg =
   let h = h land 0x7fffffff in
-  let pos = Bi_outbuf.alloc buf 4 in
-  let s = buf.s in
+  let pos = Bi_outbuf.alloc ob 4 in
+  let s = ob.o_s in
   String.unsafe_set s (pos+3) (Char.chr (h land 0xff));
   let h = h lsr 8 in
   String.unsafe_set s (pos+2) (Char.chr (h land 0xff));
@@ -96,13 +97,13 @@ let write_hashtag buf h has_arg =
   )
 
 let string_of_hashtag h has_arg =
-  let buf = Bi_outbuf.create 4 in
-  write_hashtag buf h has_arg;
-  Bi_outbuf.contents buf
+  let ob = Bi_outbuf.create 4 in
+  write_hashtag ob h has_arg;
+  Bi_outbuf.contents ob
 
 let read_hashtag ib cont =
   let i = Bi_inbuf.read ib 4 in
-  let s = ib.Bi_inbuf.s in
+  let s = ib.i_s in
   let x0 = Char.code s.[i] in
   let has_arg = x0 >= 0x80 in
   let x1 = (x0 land 0x7f) lsl 24 in
@@ -114,11 +115,9 @@ let read_hashtag ib cont =
   cont ib h has_arg
 
 
-let read_field_hashtag s pos =
-  let i = !pos in
-  let i' = i + 4 in
-  if i' > String.length s then
-    Bi_util.error "Corrupted data (truncated field hashtag)";
+let read_field_hashtag ib =
+  let i = Bi_inbuf.read ib 4 in
+  let s = ib.i_s in
   let x0 = Char.code (String.unsafe_get s i) in
   if x0 < 0x80 then
     Bi_util.error "Corrupted data (invalid field hashtag)";
@@ -126,28 +125,25 @@ let read_field_hashtag s pos =
   let x2 = (Char.code (String.unsafe_get s (i+1))) lsl 16 in
   let x3 = (Char.code (String.unsafe_get s (i+2))) lsl 8 in
   let x4 = Char.code (String.unsafe_get s (i+3)) in
-  pos := i';
   make_signed (x1 lor x2 lor x3 lor x4)
   
 
 type int7 = int
 
-let write_numtag buf i has_arg =
+let write_numtag ob i has_arg =
   if i < 0 || i > 0x7f then
     Bi_util.error "Corrupted data (invalid numtag)";
   let x =
     if has_arg then i lor 0x80
     else i
   in
-  Bi_outbuf.add_char buf (Char.chr x)
+  Bi_outbuf.add_char ob (Char.chr x)
 
-let read_numtag s pos cont =
-  if !pos >= String.length s then
-    Bi_util.error "Corrupted data (numtag)";
-  let x = Char.code s.[!pos] in
-  incr pos;
+let read_numtag ib cont =
+  let i = Bi_inbuf.read ib 1 in
+  let x = Char.code ib.i_s.[i] in
   let has_arg = x >= 0x80 in
-  cont s pos (x land 0x7f) has_arg
+  cont ib (x land 0x7f) has_arg
 
 let make_unhash l =
   let tbl = Hashtbl.create (4 * List.length l) in
@@ -173,43 +169,43 @@ let make_unhash l =
     with Not_found -> None
 
 
-let write_tag buf x =
-  Bi_outbuf.add_char buf (Char.chr x)
+let write_tag ob x =
+  Bi_outbuf.add_char ob (Char.chr x)
 
-let write_untagged_bool buf x =
-  Bi_outbuf.add_char buf (if x then '\x01' else '\x00')
+let write_untagged_bool ob x =
+  Bi_outbuf.add_char ob (if x then '\x01' else '\x00')
 
-let write_untagged_char buf x =
-  Bi_outbuf.add_char buf x
+let write_untagged_char ob x =
+  Bi_outbuf.add_char ob x
 
-let write_untagged_int8 buf x =
-  Bi_outbuf.add_char buf (Char.chr x)
+let write_untagged_int8 ob x =
+  Bi_outbuf.add_char ob (Char.chr x)
 
-let write_untagged_int16 buf x =
-  Bi_outbuf.add_char buf (Char.chr (x lsr 8));
-  Bi_outbuf.add_char buf (Char.chr (x land 0xff))
+let write_untagged_int16 ob x =
+  Bi_outbuf.add_char ob (Char.chr (x lsr 8));
+  Bi_outbuf.add_char ob (Char.chr (x land 0xff))
 
-let write_untagged_int32 buf x =
+let write_untagged_int32 ob x =
   let high = Int32.to_int (Int32.shift_right_logical x 16) in
-  Bi_outbuf.add_char buf (Char.chr (high lsr 8));
-  Bi_outbuf.add_char buf (Char.chr (high land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (high lsr 8));
+  Bi_outbuf.add_char ob (Char.chr (high land 0xff));
   let low = Int32.to_int x in
-  Bi_outbuf.add_char buf (Char.chr ((low lsr 8) land 0xff));
-  Bi_outbuf.add_char buf (Char.chr (low land 0xff))
+  Bi_outbuf.add_char ob (Char.chr ((low lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (low land 0xff))
     
-let write_untagged_int64 buf x =
+let write_untagged_int64 ob x =
   let x4 = Int64.to_int (Int64.shift_right_logical x 48) in
-  Bi_outbuf.add_char buf (Char.chr (x4 lsr 8));
-  Bi_outbuf.add_char buf (Char.chr (x4 land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x4 lsr 8));
+  Bi_outbuf.add_char ob (Char.chr (x4 land 0xff));
   let x3 = Int64.to_int (Int64.shift_right_logical x 32) in
-  Bi_outbuf.add_char buf (Char.chr ((x3 lsr 8) land 0xff));
-  Bi_outbuf.add_char buf (Char.chr (x3 land 0xff));
+  Bi_outbuf.add_char ob (Char.chr ((x3 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x3 land 0xff));
   let x2 = Int64.to_int (Int64.shift_right_logical x 16) in
-  Bi_outbuf.add_char buf (Char.chr ((x2 lsr 8) land 0xff));
-  Bi_outbuf.add_char buf (Char.chr (x2 land 0xff));
+  Bi_outbuf.add_char ob (Char.chr ((x2 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x2 land 0xff));
   let x1 = Int64.to_int x in
-  Bi_outbuf.add_char buf (Char.chr ((x1 lsr 8) land 0xff));
-  Bi_outbuf.add_char buf (Char.chr (x1 land 0xff))
+  Bi_outbuf.add_char ob (Char.chr ((x1 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x1 land 0xff))
 
 
 let float_endianness =
@@ -218,11 +214,9 @@ let float_endianness =
     | '\x00' -> `Little
     | _ -> assert false
 
-let read_untagged_float64 s pos =
-  let i = !pos in
-  let i' = i + 8 in
-  if i' > String.length s then
-    failwith "Corrupted data (float64)";
+let read_untagged_float64 ib =
+  let i = Bi_inbuf.read ib 8 in
+  let s = ib.i_s in
   let x = Obj.new_block Obj.double_tag 8 in
   (match float_endianness with
        `Little ->
@@ -234,12 +228,11 @@ let read_untagged_float64 s pos =
 	   String.unsafe_set (Obj.obj x) j (String.unsafe_get s (i+j))
 	 done
   );
-  pos := i';
   (Obj.obj x : float)
 
-let write_untagged_float64 buf x =
-  let i = Bi_outbuf.alloc buf 8 in
-  let s = buf.s in
+let write_untagged_float64 ob x =
+  let i = Bi_outbuf.alloc ob 8 in
+  let s = ob.o_s in
   (match float_endianness with
        `Little ->
 	 for j = 0 to 7 do
@@ -254,184 +247,184 @@ let write_untagged_float64 buf x =
 let () =
   let s = "\x3f\xf0\x06\x05\x04\x03\x02\x01" in
   let x = 1.00146962706651288 in
-  let y = read_untagged_float64 s (ref 0) in
+  let y = read_untagged_float64 (Bi_inbuf.create_string_reader s) in
   if x <> y then
     assert false;
-  let buf = Bi_outbuf.create 8 in
-  write_untagged_float64 buf x;
-  if Bi_outbuf.contents buf <> s then
+  let ob = Bi_outbuf.create 8 in
+  write_untagged_float64 ob x;
+  if Bi_outbuf.contents ob <> s then
     assert false
 
 
 
-let write_untagged_string buf s =
-  Bi_vint.write_uvint buf (String.length s);
-  Bi_outbuf.add_string buf s
+let write_untagged_string ob s =
+  Bi_vint.write_uvint ob (String.length s);
+  Bi_outbuf.add_string ob s
 
-let write_untagged_int128 buf s =
+let write_untagged_int128 ob s =
   if String.length s <> 16 then
     invalid_arg "Bi_io.write_untagged_int128";
-  Bi_outbuf.add_string buf s
+  Bi_outbuf.add_string ob s
 
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
-let write_bool buf x =
-  write_tag buf bool_tag;
-  write_untagged_bool buf x
+let write_bool ob x =
+  write_tag ob bool_tag;
+  write_untagged_bool ob x
 
-let write_char buf x =
-  write_tag buf int8_tag;
-  write_untagged_char buf x
+let write_char ob x =
+  write_tag ob int8_tag;
+  write_untagged_char ob x
 
-let write_int8 buf x =
-  write_tag buf int8_tag;
-  write_untagged_int8 buf x
+let write_int8 ob x =
+  write_tag ob int8_tag;
+  write_untagged_int8 ob x
 
-let write_int16 buf x =
-  write_tag buf int16_tag;
-  write_untagged_int16 buf x
+let write_int16 ob x =
+  write_tag ob int16_tag;
+  write_untagged_int16 ob x
 
-let write_int32 buf x =
-  write_tag buf int32_tag;
-  write_untagged_int32 buf x
+let write_int32 ob x =
+  write_tag ob int32_tag;
+  write_untagged_int32 ob x
 
-let write_int64 buf x =
-  write_tag buf int64_tag;
-  write_untagged_int64 buf x
+let write_int64 ob x =
+  write_tag ob int64_tag;
+  write_untagged_int64 ob x
 
-let write_int128 buf x =
-  write_tag buf int128_tag;
-  write_untagged_int128 buf x
+let write_int128 ob x =
+  write_tag ob int128_tag;
+  write_untagged_int128 ob x
 
-let write_float64 buf x =
-  write_tag buf float64_tag;
-  write_untagged_float64 buf x
+let write_float64 ob x =
+  write_tag ob float64_tag;
+  write_untagged_float64 ob x
 
-let write_string buf x =
-  write_tag buf string_tag;
-  write_untagged_string buf x
+let write_string ob x =
+  write_tag ob string_tag;
+  write_untagged_string ob x
 
-let write_uvint buf x =
-  write_tag buf uvint_tag;
-  write_untagged_uvint buf x
+let write_uvint ob x =
+  write_tag ob uvint_tag;
+  write_untagged_uvint ob x
 
-let write_svint buf x =
-  write_tag buf svint_tag;
-  write_untagged_svint buf x
-
-
+let write_svint ob x =
+  write_tag ob svint_tag;
+  write_untagged_svint ob x
 
 
-let rec write_tree buf tagged (x : tree) =
+
+
+let rec write_tree ob tagged (x : tree) =
   match x with
       `Bool x ->
 	if tagged then
-	  write_tag buf bool_tag;
-	write_untagged_bool buf x
+	  write_tag ob bool_tag;
+	write_untagged_bool ob x
 
     | `Int8 x ->
 	if tagged then 
-	  write_tag buf int8_tag;
-	write_untagged_int8 buf x
+	  write_tag ob int8_tag;
+	write_untagged_int8 ob x
 
     | `Int16 x ->
 	if tagged then
-	  write_tag buf int16_tag;
-	write_untagged_int16 buf x
+	  write_tag ob int16_tag;
+	write_untagged_int16 ob x
 
     | `Int32 x ->
 	if tagged then
-	  write_tag buf int32_tag;
-	write_untagged_int32 buf x
+	  write_tag ob int32_tag;
+	write_untagged_int32 ob x
 
     | `Int64 x ->
 	if tagged then
-	  write_tag buf int64_tag;
-	write_untagged_int64 buf x
+	  write_tag ob int64_tag;
+	write_untagged_int64 ob x
 
     | `Int128 x ->
 	if tagged then
-	  write_tag buf int128_tag;
-	write_untagged_int128 buf x
+	  write_tag ob int128_tag;
+	write_untagged_int128 ob x
 
     | `Float64 x ->
 	if tagged then
-	  write_tag buf float64_tag;
-	write_untagged_float64 buf x
+	  write_tag ob float64_tag;
+	write_untagged_float64 ob x
 
     | `Uvint x ->
 	if tagged then
-	  write_tag buf uvint_tag;
-	Bi_vint.write_uvint buf x
+	  write_tag ob uvint_tag;
+	Bi_vint.write_uvint ob x
 
     | `Svint x ->
 	if tagged then
-	  write_tag buf svint_tag;
-	Bi_vint.write_svint buf x
+	  write_tag ob svint_tag;
+	Bi_vint.write_svint ob x
 
     | `String s ->
 	if tagged then
-	  write_tag buf string_tag;
-	write_untagged_string buf s
+	  write_tag ob string_tag;
+	write_untagged_string ob s
 
     | `Array o ->
 	if tagged then
-	  write_tag buf array_tag;
+	  write_tag ob array_tag;
 	(match o with
-	     None -> Bi_vint.write_uvint buf 0
+	     None -> Bi_vint.write_uvint ob 0
 	   | Some (node_tag, a) ->
 	       let len = Array.length a in
-	       Bi_vint.write_uvint buf len;
+	       Bi_vint.write_uvint ob len;
 	       if len > 0 then (
-		 write_tag buf node_tag;
-		 Array.iter (write_tree buf false) a
+		 write_tag ob node_tag;
+		 Array.iter (write_tree ob false) a
 	       )
 	)
 
     | `Tuple a ->
 	if tagged then
-	  write_tag buf tuple_tag;
-	Bi_vint.write_uvint buf (Array.length a);
-	Array.iter (write_tree buf true) a
+	  write_tag ob tuple_tag;
+	Bi_vint.write_uvint ob (Array.length a);
+	Array.iter (write_tree ob true) a
 
     | `Record a ->
 	if tagged then
-	  write_tag buf record_tag;
-	Bi_vint.write_uvint buf (Array.length a);
-	Array.iter (write_field buf) a
+	  write_tag ob record_tag;
+	Bi_vint.write_uvint ob (Array.length a);
+	Array.iter (write_field ob) a
 
     | `Num_variant (i, x) ->
 	if tagged then
-	  write_tag buf num_variant_tag;
-	write_numtag buf i (x <> None);
+	  write_tag ob num_variant_tag;
+	write_numtag ob i (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_tree buf true v)
+	   | Some v -> write_tree ob true v)
 
     | `Variant (o, h, x) ->
 	if tagged then
-	  write_tag buf variant_tag;
-	write_hashtag buf h (x <> None);
+	  write_tag ob variant_tag;
+	write_hashtag ob h (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_tree buf true v)
+	   | Some v -> write_tree ob true v)
 
     | `Record_table o ->
 	if tagged then
-	  write_tag buf record_table_tag;
+	  write_tag ob record_table_tag;
 	(match o with
-	     None -> Bi_vint.write_uvint buf 0
+	     None -> Bi_vint.write_uvint ob 0
 	   | Some (fields, a) ->
 	       let row_num = Array.length a in
-	       Bi_vint.write_uvint buf row_num;
+	       Bi_vint.write_uvint ob row_num;
 	       if row_num > 0 then
 		 let col_num = Array.length fields in
-		 Bi_vint.write_uvint buf col_num;
+		 Bi_vint.write_uvint ob col_num;
 		 Array.iter (
 		   fun (name, h, tag) ->
-		     write_hashtag buf h true;
-		     write_tag buf tag
+		     write_hashtag ob h true;
+		     write_tag ob tag
 		 ) fields;
 		 if row_num > 0 then (
 		   for i = 0 to row_num - 1 do
@@ -439,83 +432,57 @@ let rec write_tree buf tagged (x : tree) =
 		     if Array.length ai <> col_num then
 		       invalid_arg "Bi_io.write_tree: Malformed `Record_table";
 		     for j = 0 to col_num - 1 do
-		       write_tree buf false ai.(j)
+		       write_tree ob false ai.(j)
 		     done
 		   done
 		 )
 	)
 
 
-and write_field buf (s, h, x) =
-  write_hashtag buf h true;
-  write_tree buf true x
+and write_field ob (s, h, x) =
+  write_hashtag ob h true;
+  write_tree ob true x
 
 let string_of_tree x =
-  let buf = Bi_outbuf.create 1000 in
-  write_tree buf true x;
-  Bi_outbuf.contents buf
+  let ob = Bi_outbuf.create 1000 in
+  write_tree ob true x;
+  Bi_outbuf.contents ob
 
 let tag_error () =
   Bi_util.error "Corrupted data (tag)"
 
-let read_tag s pos =
-  let i = !pos in
-  if i >= String.length s then
-    tag_error ();
-  let x = Char.code (String.unsafe_get s i) in
-  pos := i + 1;
-  x
+let read_tag ib =
+  Char.code (Bi_inbuf.read_char ib)
 
-let read_untagged_bool s pos =
-  let i = !pos in
-  if i >= String.length s then
-    Bi_util.error "Corrupted data (bool)";
-  let x =
-    match s.[i] with
-	'\x00' -> false
-      | '\x01' -> true
-      | _ -> Bi_util.error "Corrupted data (bool value)"
-  in
-  pos := i + 1;
-  x
+let read_untagged_bool ib =
+  match Bi_inbuf.read_char ib with
+      '\x00' -> false
+    | '\x01' -> true
+    | _ -> Bi_util.error "Corrupted data (bool value)"
 
-let read_untagged_char s pos =
-  if !pos >= String.length s then
-    Bi_util.error "Corrupted data (char)";
-  let x = s.[!pos] in
-  incr pos;
-  x
+let read_untagged_char ib = Bi_inbuf.read_char ib
 
-let read_untagged_int8 s pos =
-  if !pos >= String.length s then
-    Bi_util.error "Corrupted data (int8)";
-  let x = Char.code s.[!pos] in
-  incr pos;
-  x
+let read_untagged_int8 ib =
+  Char.code (Bi_inbuf.read_char ib)
 
-let read_untagged_int16 s pos =
-  let i = !pos in
-  if i + 2 > String.length s then
-    Bi_util.error "Corrupted data (int16)";
-  let x = ((Char.code s.[i]) lsl 8) lor (Char.code s.[i+1]) in
-  pos := !pos + 2;
-  x
+let read_untagged_int16 ib =
+  let i = Bi_inbuf.read ib 2 in
+  let s = ib.i_s in
+  ((Char.code s.[i]) lsl 8) lor (Char.code s.[i+1])
 
-let read_untagged_int32 s pos =
-  let i = !pos in
-  if i + 4 > String.length s then
-    Bi_util.error "Corrupted data (int32)";
+
+let read_untagged_int32 ib =
+  let i = Bi_inbuf.read ib 4 in
+  let s = ib.i_s in
   let x1 =
     Int32.of_int (((Char.code s.[i  ]) lsl 8) lor (Char.code s.[i+1])) in
   let x2 =
     Int32.of_int (((Char.code s.[i+2]) lsl 8) lor (Char.code s.[i+3])) in
-  pos := !pos + 4;
   Int32.logor (Int32.shift_left x1 16) x2
 
-let read_untagged_int64 s pos =
-  let i = !pos in
-  if i + 8 > String.length s then
-    Bi_util.error "Corrupted data (int64)";
+let read_untagged_int64 ib =
+  let i = Bi_inbuf.read ib 8 in
+  let s = ib.i_s in
   let x1 =
     Int64.of_int (((Char.code s.[i  ]) lsl 8) lor (Char.code s.[i+1])) in
   let x2 =
@@ -524,7 +491,6 @@ let read_untagged_int64 s pos =
     Int64.of_int (((Char.code s.[i+4]) lsl 8) lor (Char.code s.[i+5])) in
   let x4 =
     Int64.of_int (((Char.code s.[i+6]) lsl 8) lor (Char.code s.[i+7])) in
-  pos := !pos + 8;
   Int64.logor (Int64.shift_left x1 48)
     (Int64.logor (Int64.shift_left x2 32)
        (Int64.logor (Int64.shift_left x3 16) x4))
@@ -532,107 +498,114 @@ let read_untagged_int64 s pos =
 
 
 
-let read_untagged_string s pos =
-  let len = Bi_vint.read_uvint s pos in
-  if !pos + len > String.length s then
-    Bi_util.error "Corrupted data (string)";
-  let str = String.sub s !pos len in
-  pos := !pos + len;
+let read_untagged_string ib =
+  let len = Bi_vint.read_uvint ib in
+  let str = String.create len in
+  let pos = ref 0 in
+  let rem = ref len in
+  while !rem > 0 do
+    let bytes_read = Bi_inbuf.try_preread ib !rem in
+    if bytes_read = 0 then
+      Bi_util.error "Corrupted data (string)"
+    else (
+      String.blit ib.i_s ib.i_pos str !pos bytes_read;
+      ib.i_pos <- ib.i_pos + bytes_read;
+      pos := !pos + bytes_read;
+      rem := !rem - bytes_read
+    )
+  done;
   str
 
-let read_untagged_int128 s pos =
-  if !pos + 16 > String.length s then
-    Bi_util.error "Corrupted data (int128)";
-  let str = String.sub s !pos 16 in
-  pos := !pos + 16;
-  str
+let read_untagged_int128 ib =
+  let i = Bi_inbuf.read ib 16 in
+  String.sub ib.i_s i 16
 
 let read_untagged_uvint = Bi_vint.read_uvint
 let read_untagged_svint = Bi_vint.read_svint
 
-let read_bool s pos = `Bool (read_untagged_bool s pos)
+let read_bool ib = `Bool (read_untagged_bool ib)
 
-let read_int8 s pos = `Int8 (read_untagged_int8 s pos)
+let read_int8 ib = `Int8 (read_untagged_int8 ib)
 
-let read_int16 s pos = `Int16 (read_untagged_int16 s pos)
+let read_int16 ib = `Int16 (read_untagged_int16 ib)
 
-let read_int32 s pos = `Int32 (read_untagged_int32 s pos)
+let read_int32 ib = `Int32 (read_untagged_int32 ib)
 
-let read_int64 s pos = `Int64 (read_untagged_int64 s pos)
+let read_int64 ib = `Int64 (read_untagged_int64 ib)
 
-let read_int128 s pos = `Int128 (read_untagged_int128 s pos)
+let read_int128 ib = `Int128 (read_untagged_int128 ib)
 
-let read_float s pos =
-  `Float64 (read_untagged_float64 s pos)
+let read_float ib =
+  `Float64 (read_untagged_float64 ib)
 
-let read_uvint s pos = `Uvint (read_untagged_uvint s pos)
-let read_svint s pos = `Svint (read_untagged_svint s pos)
+let read_uvint ib = `Uvint (read_untagged_uvint ib)
+let read_svint ib = `Svint (read_untagged_svint ib)
 
-let read_string s pos = `String (read_untagged_string s pos)
+let read_string ib = `String (read_untagged_string ib)
 
 let print s = print_string s; print_newline ()
 
 let tree_of_string ?(unhash = make_unhash [])  s : tree =
 
-  let rec read_array s pos =
-    let len = Bi_vint.read_uvint s pos in
+  let rec read_array ib =
+    let len = Bi_vint.read_uvint ib in
     if len = 0 then `Array None
     else
-      let tag = read_tag s pos in
+      let tag = read_tag ib in
       let read = reader_of_tag tag in
-      `Array (Some (tag, Array.init len (fun _ -> read s pos)))
+      `Array (Some (tag, Array.init len (fun _ -> read ib)))
       
-  and read_tuple s pos =
-    let len = Bi_vint.read_uvint s pos in
-    `Tuple (Array.init len (fun _ -> read_tree s pos))
+  and read_tuple ib =
+    let len = Bi_vint.read_uvint ib in
+    `Tuple (Array.init len (fun _ -> read_tree ib))
       
-  and read_field s pos =
-    let h = read_field_hashtag s pos in
+  and read_field ib =
+    let h = read_field_hashtag ib in
     let name = unhash h in
-    let x = read_tree s pos in
+    let x = read_tree ib in
     (name, h, x)
       
-  and read_record s pos =
-    let len = Bi_vint.read_uvint s pos in
-    `Record (Array.init len (fun _ -> read_field s pos))
+  and read_record ib =
+    let len = Bi_vint.read_uvint ib in
+    `Record (Array.init len (fun _ -> read_field ib))
     
-  and read_num_variant_cont s pos i has_arg =
+  and read_num_variant_cont ib i has_arg =
     let x =
       if has_arg then
-	Some (read_tree s pos)
+	Some (read_tree ib)
       else
 	None
     in
     `Num_variant (i, x)
   
-  and read_num_variant s pos =
-    read_numtag s pos read_num_variant_cont
+  and read_num_variant ib =
+    read_numtag ib read_num_variant_cont
       
-  and read_variant_cont s pos h has_arg =
+  and read_variant_cont ib h has_arg =
     let name = unhash h in
     let x =
       if has_arg then
-	Some (read_tree s pos)
+	Some (read_tree ib)
       else
 	None
     in
     `Variant (name, h, x)
   
-  and read_variant s pos =
-    read_hashtag s pos read_variant_cont
+  and read_variant ib =
+    read_hashtag ib read_variant_cont
       
-  and read_record_table s pos =
-    let row_num = Bi_vint.read_uvint s pos in
+  and read_record_table ib =
+    let row_num = Bi_vint.read_uvint ib in
     if row_num = 0 then
       `Record_table None
     else
-      let col_num = Bi_vint.read_uvint s pos in
+      let col_num = Bi_vint.read_uvint ib in
       let fields = 
 	Array.init col_num (
 	  fun _ ->
-	    let h = read_field_hashtag s pos in
+	    let h = read_field_hashtag ib in
 	    let name = unhash h in
-	    let tag = read_tag s pos in
+	    let tag = read_tag ib in
 	    (name, h, tag)
 	)
       in
@@ -641,7 +614,7 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
       let a =
 	Array.init row_num
 	  (fun _ ->
-	     Array.init col_num (fun j -> readers.(j) s pos))
+	     Array.init col_num (fun j -> readers.(j) ib))
       in
       `Record_table (Some (fields, a))
 	
@@ -664,89 +637,85 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
     | 25 (* record_table *) -> read_record_table
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
-  and read_tree s pos : tree =
-    reader_of_tag (read_tag s pos) s pos
+  and read_tree ib : tree =
+    reader_of_tag (read_tag ib) ib
       
   in
-  read_tree s (ref 0)
+  read_tree (Bi_inbuf.create_string_reader s)
 
 
-let skip_bytes n s pos =
-  let p = !pos + n in
-  pos := p;
-  if p > String.length s then
-    Bi_util.error "Corrupted data (skip_bytes)"
+let skip_bytes ib n = ignore (Bi_inbuf.read ib n)
 
-let skip_bool s pos = skip_bytes 1 s pos
-let skip_int8 s pos = skip_bytes 1 s pos
-let skip_int16 s pos = skip_bytes 2 s pos
-let skip_int32 s pos = skip_bytes 4 s pos
-let skip_int64 s pos = skip_bytes 8 s pos
-let skip_int128 s pos = skip_bytes 16 s pos
-let skip_float s pos = skip_bytes 8 s pos
-let skip_uvint s pos = ignore (read_untagged_uvint s pos)
-let skip_svint s pos = ignore (read_untagged_svint s pos)
+let skip_bool ib = skip_bytes ib 1
+let skip_int8 ib = skip_bytes ib 1
+let skip_int16 ib = skip_bytes ib 2
+let skip_int32 ib = skip_bytes ib 4
+let skip_int64 ib = skip_bytes ib 8
+let skip_int128 ib = skip_bytes ib 16
+let skip_float ib = skip_bytes ib 8
+let skip_uvint ib = ignore (read_untagged_uvint ib)
+let skip_svint ib = ignore (read_untagged_svint ib)
 
-let skip_string s pos =
-  let len = Bi_vint.read_uvint s pos in
-  skip_bytes len s pos
+let skip_string ib =
+  let len = Bi_vint.read_uvint ib in
+  skip_bytes ib len
 
-let rec skip_array s pos =
-  let len = Bi_vint.read_uvint s pos in
+let rec skip_array ib =
+  let len = Bi_vint.read_uvint ib in
   if len = 0 then ()
   else
-    let tag = read_tag s pos in
+    let tag = read_tag ib in
     let read = skipper_of_tag tag in
     for i = 1 to len do
-      read s pos
+      read ib
     done
       
-and skip_tuple s pos =
-  let len = Bi_vint.read_uvint s pos in
+and skip_tuple ib =
+  let len = Bi_vint.read_uvint ib in
   for i = 1 to len do
-    skip s pos
+    skip ib
   done
     
-and skip_field s pos =
-  ignore (read_field_hashtag s pos);
-  skip s pos
+and skip_field ib =
+  ignore (read_field_hashtag ib);
+  skip ib
     
-and skip_record s pos =
-  let len = Bi_vint.read_uvint s pos in
+and skip_record ib =
+  let len = Bi_vint.read_uvint ib in
   for i = 1 to len do
-    skip_field s pos
+    skip_field ib
   done
     
-and skip_num_variant_cont s pos i has_arg =
+and skip_num_variant_cont ib i has_arg =
   if has_arg then
-    skip s pos
+    skip ib
       
-and skip_num_variant s pos =
-  read_numtag s pos skip_num_variant_cont
+and skip_num_variant ib =
+  read_numtag ib skip_num_variant_cont
     
-and skip_variant_cont s pos h has_arg =
+and skip_variant_cont ib h has_arg =
   if has_arg then
-    skip s pos
+    skip ib
       
-and skip_variant s pos =
-  read_hashtag s pos skip_variant_cont
+and skip_variant ib =
+  read_hashtag ib skip_variant_cont
     
-and skip_record_table s pos =
-  let row_num = Bi_vint.read_uvint s pos in
+and skip_record_table ib =
+  let row_num = Bi_vint.read_uvint ib in
   if row_num = 0 then
     ()
   else
-    let col_num = Bi_vint.read_uvint s pos in
+    let col_num = Bi_vint.read_uvint ib in
     let readers = 
       Array.init col_num (
 	fun _ ->
-	  ignore (read_field_hashtag s pos);
-	  skipper_of_tag (read_tag s pos)
+	  ignore (read_field_hashtag ib);
+	  skipper_of_tag (read_tag ib)
       )
     in
     for i = 1 to row_num do
       for j = 1 to col_num do
-	readers.(j) s pos
+	readers.(j) ib
       done
     done
       
@@ -769,8 +738,8 @@ and skipper_of_tag = function
   | 25 (* record_table *) -> skip_record_table
   | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
-and skip s pos : unit =
-  skipper_of_tag (read_tag s pos) s pos
+and skip ib : unit =
+  skipper_of_tag (read_tag ib) ib
     
 
 

@@ -4,6 +4,7 @@
 
 open Printf
 open Bi_outbuf
+open Bi_inbuf
 
 (* Word size in bytes *)
 let word_size =
@@ -74,15 +75,15 @@ let svint_of_int ?buf i =
 
 let read_uvint ib =
   let avail = Bi_inbuf.try_preread ib max_vint_bytes in
-  let s = ib.Bi_inbuf.s in
-  let pos = ib.Bi_inbuf.pos in
+  let s = ib.i_s in
+  let pos = ib.i_pos in
   let x = ref 0 in
   (try
      for i = 0 to avail - 1 do
        let b = Char.code s.[pos+i] in
        x := ((b land 0x7f) lsl (7*i)) lor !x;
        if b < 0x80 then (
-	 ib.Bi_inbuf.pos <- pos + i + 1;
+	 ib.i_pos <- pos + i + 1;
 	 if i + 1 = max_vint_bytes then
 	   check_highest_byte b;
 	 raise Exit
@@ -112,7 +113,7 @@ let string_of_list l =
   Bi_outbuf.contents ob
 
 let rec read_list ib =
-  if ib.Bi_inbuf.pos < ib.Bi_inbuf.len then
+  if ib.i_pos < ib.i_len then
     let x = read_uvint ib in
     x :: read_list ib
   else

@@ -247,7 +247,7 @@ let write_untagged_float64 ob x =
 let () =
   let s = "\x3f\xf0\x06\x05\x04\x03\x02\x01" in
   let x = 1.00146962706651288 in
-  let y = read_untagged_float64 (Bi_inbuf.create_string_reader s) in
+  let y = read_untagged_float64 (Bi_inbuf.from_string s) in
   if x <> y then
     assert false;
   let ob = Bi_outbuf.create 8 in
@@ -641,7 +641,7 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
     reader_of_tag (read_tag ib) ib
       
   in
-  read_tree (Bi_inbuf.create_string_reader s)
+  read_tree (Bi_inbuf.from_string s)
 
 
 let skip_bytes ib n = ignore (Bi_inbuf.read ib n)

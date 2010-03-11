@@ -99,8 +99,8 @@ let read_svint ib =
   signed_of_unsigned (read_uvint ib)
 
 (* convenience *)
-let int_of_uvint s = read_uvint (Bi_inbuf.create_string_reader s)
-let int_of_svint s = read_svint (Bi_inbuf.create_string_reader s)
+let int_of_uvint s = read_uvint (Bi_inbuf.from_string s)
+let int_of_svint s = read_svint (Bi_inbuf.from_string s)
 
 
 (*
@@ -120,7 +120,7 @@ let rec read_list ib =
     []
 
 let list_of_string s =
-  read_list (Bi_inbuf.create_string_reader s)
+  read_list (Bi_inbuf.from_string s)
 
 let print_list l =
   List.iter (

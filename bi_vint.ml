@@ -133,7 +133,7 @@ let test () =
   let l = [
     0;
     0xfffffff;
-    0x0102030405060708;
+    (0x01020304 lsl 32) lor 0x05060708;
     max_int;
     min_int
   ] in

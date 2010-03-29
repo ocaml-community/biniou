@@ -81,7 +81,7 @@ val skip : Bi_inbuf.t -> unit
 type tree =
     [
     | `Bool of bool
-    | `Int8 of int
+    | `Int8 of char
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t

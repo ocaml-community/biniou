@@ -33,7 +33,7 @@ type hash = int
 *)
 type tree =
     [ `Bool of bool
-    | `Int8 of int
+    | `Int8 of char
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
@@ -193,21 +193,6 @@ let write_untagged_int32 ob x =
   Bi_outbuf.add_char ob (Char.chr ((low lsr 8) land 0xff));
   Bi_outbuf.add_char ob (Char.chr (low land 0xff))
     
-let write_untagged_int64 ob x =
-  let x4 = Int64.to_int (Int64.shift_right_logical x 48) in
-  Bi_outbuf.add_char ob (Char.chr (x4 lsr 8));
-  Bi_outbuf.add_char ob (Char.chr (x4 land 0xff));
-  let x3 = Int64.to_int (Int64.shift_right_logical x 32) in
-  Bi_outbuf.add_char ob (Char.chr ((x3 lsr 8) land 0xff));
-  Bi_outbuf.add_char ob (Char.chr (x3 land 0xff));
-  let x2 = Int64.to_int (Int64.shift_right_logical x 16) in
-  Bi_outbuf.add_char ob (Char.chr ((x2 lsr 8) land 0xff));
-  Bi_outbuf.add_char ob (Char.chr (x2 land 0xff));
-  let x1 = Int64.to_int x in
-  Bi_outbuf.add_char ob (Char.chr ((x1 lsr 8) land 0xff));
-  Bi_outbuf.add_char ob (Char.chr (x1 land 0xff))
-
-
 let float_endianness =
   match String.unsafe_get (Obj.magic 1.0) 0 with
       '\x3f' -> `Big
@@ -243,6 +228,26 @@ let write_untagged_float64 ob x =
 	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) j)
 	 done
   )
+
+(*
+let write_untagged_int64 ob x =
+  let x4 = Int64.to_int (Int64.shift_right_logical x 48) in
+  Bi_outbuf.add_char ob (Char.chr (x4 lsr 8));
+  Bi_outbuf.add_char ob (Char.chr (x4 land 0xff));
+  let x3 = Int64.to_int (Int64.shift_right_logical x 32) in
+  Bi_outbuf.add_char ob (Char.chr ((x3 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x3 land 0xff));
+  let x2 = Int64.to_int (Int64.shift_right_logical x 16) in
+  Bi_outbuf.add_char ob (Char.chr ((x2 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x2 land 0xff));
+  let x1 = Int64.to_int x in
+  Bi_outbuf.add_char ob (Char.chr ((x1 lsr 8) land 0xff));
+  Bi_outbuf.add_char ob (Char.chr (x1 land 0xff))
+*)
+
+let write_untagged_int64 ob x =
+  write_untagged_float64 ob (Int64.float_of_bits x)
+
 
 let () =
   let s = "\x3f\xf0\x06\x05\x04\x03\x02\x01" in
@@ -326,7 +331,7 @@ let rec write_tree ob tagged (x : tree) =
     | `Int8 x ->
 	if tagged then 
 	  write_tag ob int8_tag;
-	write_untagged_int8 ob x
+	write_untagged_char ob x
 
     | `Int16 x ->
 	if tagged then
@@ -480,6 +485,7 @@ let read_untagged_int32 ib =
     Int32.of_int (((Char.code s.[i+2]) lsl 8) lor (Char.code s.[i+3])) in
   Int32.logor (Int32.shift_left x1 16) x2
 
+(*
 let read_untagged_int64 ib =
   let i = Bi_inbuf.read ib 8 in
   let s = ib.i_s in
@@ -494,7 +500,10 @@ let read_untagged_int64 ib =
   Int64.logor (Int64.shift_left x1 48)
     (Int64.logor (Int64.shift_left x2 32)
        (Int64.logor (Int64.shift_left x3 16) x4))
+*)
 
+let read_untagged_int64 ib =
+  Int64.bits_of_float (read_untagged_float64 ib)
 
 
 
@@ -525,7 +534,7 @@ let read_untagged_svint = Bi_vint.read_svint
 
 let read_bool ib = `Bool (read_untagged_bool ib)
 
-let read_int8 ib = `Int8 (read_untagged_int8 ib)
+let read_int8 ib = `Int8 (read_untagged_char ib)
 
 let read_int16 ib = `Int16 (read_untagged_int16 ib)
 
@@ -761,7 +770,7 @@ struct
   let rec format (x : tree) =
     match x with
 	`Bool x -> Atom ((if x then "true" else "false"), atom)
-      | `Int8 x -> Atom (sprintf "0x%02x" x, atom)
+      | `Int8 x -> Atom (sprintf "0x%02x" (Char.code x), atom)
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
       | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)

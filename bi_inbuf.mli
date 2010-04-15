@@ -63,6 +63,11 @@ val read_char : t -> char
     Read just one byte.
   *)
 
+val peek : t -> char
+  (*
+    Return the next byte without moving forward.
+  *)
+
 val from_string : ?pos:int -> string -> t
   (*
     Create an input buffer from a string.

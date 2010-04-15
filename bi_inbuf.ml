@@ -48,6 +48,17 @@ let read_char ib =
     else
       raise End_of_input
 
+let peek ib =
+  let pos = ib.i_pos in
+  if ib.i_len - pos > 0 then (
+    String.unsafe_get ib.i_s pos
+  )
+  else
+    if try_preread ib 1 > 0 then
+      String.unsafe_get ib.i_s ib.i_pos
+    else
+      raise End_of_input
+
 let from_string ?(pos = 0) s = {
   i_s = s;
   i_pos = pos;

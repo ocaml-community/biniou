@@ -101,10 +101,10 @@ type tree =
      and for untyped transformations. *)
 
 val string_of_tree : tree -> string
-  (* Testing *)
-
 val tree_of_string : ?unhash:(hash -> string option) -> string -> tree
-  (* Testing *)
+
+val tag_of_tree : tree -> node_tag
+
 
 val view :
   ?unhash:(hash -> string option) -> string -> string

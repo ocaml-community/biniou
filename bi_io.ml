@@ -453,6 +453,26 @@ let string_of_tree x =
   write_tree ob true x;
   Bi_outbuf.contents ob
 
+let tag_of_tree (x : tree) =
+  match x with
+      `Bool _ -> bool_tag
+    | `Int8 _ -> int8_tag
+    | `Int16 _ -> int16_tag
+    | `Int32 _ -> int32_tag
+    | `Int64 _ -> int64_tag
+    | `Int128 _ -> int128_tag
+    | `Float64 _ -> float64_tag
+    | `Uvint _ -> uvint_tag
+    | `Svint _ -> svint_tag
+    | `String _ -> string_tag
+    | `Array _ -> array_tag
+    | `Tuple _ -> tuple_tag
+    | `Record _ -> record_tag
+    | `Num_variant _ -> num_variant_tag
+    | `Variant _ -> variant_tag
+    | `Record_table _ -> record_table_tag
+
+
 let tag_error () =
   Bi_util.error "Corrupted data (tag)"
 

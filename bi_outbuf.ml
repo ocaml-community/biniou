@@ -12,7 +12,7 @@ let really_extend b n =
   let slen0 = b.o_max_len in
   let reqlen = b.o_len + n in
   let slen =
-    let x = 2 * slen0 in
+    let x = max reqlen (2 * slen0) in
     if x <= Sys.max_string_length then x
     else
       if Sys.max_string_length < reqlen then

@@ -1,3 +1,5 @@
+name = "biniou"
+version = "@@VERSION@@"
 description = "Extensible binary serialization format"
 requires = "easy-format"
 archive(byte) = "biniou.cma"

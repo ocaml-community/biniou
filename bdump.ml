@@ -2,7 +2,22 @@
 
 open Printf
 
+(*
 let split s = Str.split (Str.regexp ",") s
+*)
+
+let split s =
+  let acc = ref [] in
+  let stop = ref (String.length s) in
+  for i = !stop - 1 downto 0 do
+    if s.[i] = ',' then (
+      let start = i + 1 in
+      acc := String.sub s start (!stop - start) :: !acc;
+      stop := i
+    )
+  done;
+  String.sub s 0 !stop :: !acc
+
 
 let load_lines s =
   let ic = open_in s in

@@ -1,18 +1,20 @@
 (* $Id$ *)
 
+(** Input buffer *)
+
 type t = {
   mutable i_s : string;
-    (* This is the buffer string.
+    (** This is the buffer string.
        It can be accessed for reading but should normally only
        be written to or replaced only by the [i_refill] function.
     *)
 
   mutable i_pos : int;
-    (* This is the current position in the input buffer.
+    (** This is the current position in the input buffer.
        All data before that may be erased at anytime. *)
 
   mutable i_len : int;
-    (*
+    (**
       This is the position of the first byte of invalid input data.
       Data starting at [i_pos] and ending at [i_len-1] is considered
       valid input data that is available to the user.
@@ -23,10 +25,10 @@ type t = {
     *)
 
   mutable i_max_len : int;
-    (* This is the length of [i_s]. *)
+    (** This is the length of [i_s]. *)
 
   i_refill : t -> int -> unit;
-    (*
+    (**
       Function called when not enough data is available in the buffer.
       The int argument is the total number of bytes that must be 
       available starting at position [i_pos] when the function returns.
@@ -42,7 +44,7 @@ type t = {
 exception End_of_input
 
 val try_preread : t -> int -> int
-  (*
+  (**
     [try_preread ib n] make at least [n] bytes available for reading 
     in [ib.i_s], unless the end of the input is reached.
     The result indicates how many bytes were made available. If smaller than
@@ -51,7 +53,7 @@ val try_preread : t -> int -> int
   *)
 
 val read : t -> int -> int
-  (*
+  (**
     [read ib n] makes at least [n] bytes available for reading or raises
     the [End_of_input] exception.
     The result is the position of the first available byte.
@@ -59,22 +61,22 @@ val read : t -> int -> int
   *)
 
 val read_char : t -> char
-  (*
+  (**
     Read just one byte.
   *)
 
 val peek : t -> char
-  (*
+  (**
     Return the next byte without moving forward.
   *)
 
 val from_string : ?pos:int -> string -> t
-  (*
+  (**
     Create an input buffer from a string.
   *)
 
 val from_channel : ?len:int -> in_channel -> t (* TODO: test this function *)
-  (*
+  (**
     Create an input buffer from an in_channel.
     Such a buffer is not extensible and [read] requests may not exceed [len].
   *)

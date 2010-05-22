@@ -33,16 +33,25 @@ let check_highest_byte x =
 
 
 let unsigned_of_signed i =
-  if i >= 0 then i lsl 1
+  if i >= 0 then
+    (*
+      0 -> 0
+      1 -> 2
+      2 -> 4
+      3 -> 6
+    *)
+    i lsl 1
   else
-    if i = min_int then
-      invalid_arg "Bi_vint.unsigned_of_signed: min_int"
-    else
-      ((-i) lsl 1) lor 1
+    (*
+      -1 -> 1
+      -2 -> 3
+      -3 -> 5
+    *)
+    ((-1-i) lsl 1) lor 1
 
 let signed_of_unsigned i =
   if i land 1 = 0 then i lsr 1
-  else - (i lsr 1)
+  else -1 - (i lsr 1)
 
 let write_uvint buf i  =
   Bi_outbuf.extend buf max_vint_bytes;

@@ -6,7 +6,7 @@ FLAGS = -dtypes
 PACKS = easy-format
 
 .PHONY: default all opt install doc
-default: all opt test_biniou
+default: all opt test_biniou META
 all: biniou.cma
 opt: biniou.cmxa bdump
 

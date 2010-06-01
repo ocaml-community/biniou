@@ -1,5 +1,7 @@
 (* $Id$ *)
 
+(** Input and output functions for the Biniou serialization format *)
+
 type node_tag = int
 
 val bool_tag : node_tag (* 0 *)

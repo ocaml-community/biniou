@@ -6,6 +6,8 @@ open Printf
 open Bi_outbuf
 open Bi_inbuf
 
+type uint = int
+
 (* Word size in bytes *)
 let word_size =
   if 0x7fffffff = -1 then 4
@@ -68,7 +70,7 @@ let write_svint buf i =
   write_uvint buf (unsigned_of_signed i)
     
 (* convenience *)
-let uvint_of_int ?buf i =
+let uvint_of_uint ?buf i =
   let buffer = 
     match buf with
       | None -> Bi_outbuf.create 10 
@@ -79,7 +81,7 @@ let uvint_of_int ?buf i =
   Bi_outbuf.contents buffer
 
 let svint_of_int ?buf i =
-  uvint_of_int ?buf (unsigned_of_signed i)
+  uvint_of_uint ?buf (unsigned_of_signed i)
 
 
 let read_uvint ib =
@@ -108,9 +110,23 @@ let read_svint ib =
   signed_of_unsigned (read_uvint ib)
 
 (* convenience *)
-let int_of_uvint s = read_uvint (Bi_inbuf.from_string s)
-let int_of_svint s = read_svint (Bi_inbuf.from_string s)
 
+let check_end_of_input ib =
+  if Bi_inbuf.try_preread ib 1 > 0 then
+    Bi_util.error "Junk input after end of vint"
+
+let uint_of_uvint s =
+  let ib = Bi_inbuf.from_string s in
+  let x = read_uvint ib in
+  check_end_of_input ib;
+  x
+
+let int_of_svint s =
+  let ib = Bi_inbuf.from_string s in
+  let x = read_svint ib in
+  check_end_of_input ib;
+  x
+  
 
 (*
   Testing

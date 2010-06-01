@@ -42,32 +42,41 @@ type t = {
 }
 
 exception End_of_input
+  (**
+     Exception raised by all the functions of this module
+     when it is not possible to return a valid result
+     because there is not enough data to read from the buffer.
+  *)
 
 val try_preread : t -> int -> int
   (**
-    [try_preread ib n] make at least [n] bytes available for reading 
-    in [ib.i_s], unless the end of the input is reached.
-    The result indicates how many bytes were made available. If smaller than
-    [n], the result indicates that the end of the input was reached.
-    [ib.i_pos] is set to point to the first available byte.
+     [try_preread ib n] make at least [n] bytes available for reading 
+     in [ib.i_s], unless the end of the input is reached.
+     The result indicates how many bytes were made available. If smaller than
+     [n], the result indicates that the end of the input was reached.
+     [ib.i_pos] is set to point to the first available byte.
   *)
 
 val read : t -> int -> int
   (**
-    [read ib n] makes at least [n] bytes available for reading or raises
-    the [End_of_input] exception.
-    The result is the position of the first available byte.
-    [ib.i_pos] is moved to point to the next position after the [n] bytes.
+     [read ib n] makes at least [n] bytes available for reading or raises
+     the [End_of_input] exception.
+     The result is the position of the first available byte.
+     [ib.i_pos] is moved to point to the next position after the [n] bytes.
+     @raise End_of_input if there is less than [n] bytes
+     before the end of input.
   *)
 
 val read_char : t -> char
   (**
     Read just one byte.
+    @raise End_of_input if the end of input has already been reached.
   *)
 
 val peek : t -> char
   (**
     Return the next byte without moving forward.
+    @raise End_of_input if the end of input has already been reached.
   *)
 
 val from_string : ?pos:int -> string -> t

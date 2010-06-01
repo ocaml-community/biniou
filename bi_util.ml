@@ -26,12 +26,12 @@ let string4_of_int x =
 let print_bits ?(pos = 0) ?len s =
   let slen = String.length s in
   if pos < 0 || (pos > 0 && pos >= slen) then
-    invalid_arg "Bitbuffer.print_bits";
+    invalid_arg "Bi_util.print_bits";
   let len =
     match len with
         None -> slen - pos
       | Some len -> 
-          if len > slen - pos then invalid_arg "Bitbuffer.print_bits"
+          if len > slen - pos then invalid_arg "Bi_util.print_bits"
           else len
   in
 

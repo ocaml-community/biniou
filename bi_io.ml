@@ -795,13 +795,14 @@ struct
 	  let name =
 	    match opt_name with
 		None -> sprintf "#%08lx" (Int32.of_int h)
-	      | Some s -> sprintf "<%s>" (String.escaped s)
+	      | Some s -> sprintf "%S" s
 	  in
-	  let cons = Atom (name, atom) in
 	  (match o with
-	       None -> cons
-	     | Some x -> Label ((cons, label), format x))
-	  
+	       None -> Atom ("<" ^ name ^ ">", atom)
+	     | Some x ->
+		 List (("<", "", ">", tuple),
+		       [ Label ((Atom (name ^ ":", atom), label), format x) ])
+	  )
       | `Record_table None -> Atom ("[]", atom)
       | `Record_table (Some (header, aa)) ->
 	  let record_array =

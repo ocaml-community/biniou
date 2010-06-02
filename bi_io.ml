@@ -12,7 +12,6 @@ let int8_tag = 1
 let int16_tag = 2
 let int32_tag = 3
 let int64_tag = 4
-let int128_tag = 5
 let float64_tag = 12
 let uvint_tag = 16
 let svint_tag = 17
@@ -37,7 +36,6 @@ type tree =
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
-    | `Int128 of string
     | `Float64 of float
     | `Uvint of int
     | `Svint of int
@@ -266,11 +264,6 @@ let write_untagged_string ob s =
   Bi_vint.write_uvint ob (String.length s);
   Bi_outbuf.add_string ob s
 
-let write_untagged_int128 ob s =
-  if String.length s <> 16 then
-    invalid_arg "Bi_io.write_untagged_int128";
-  Bi_outbuf.add_string ob s
-
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
@@ -298,10 +291,6 @@ let write_int64 ob x =
   write_tag ob int64_tag;
   write_untagged_int64 ob x
 
-let write_int128 ob x =
-  write_tag ob int128_tag;
-  write_untagged_int128 ob x
-
 let write_float64 ob x =
   write_tag ob float64_tag;
   write_untagged_float64 ob x
@@ -321,7 +310,7 @@ let write_svint ob x =
 
 
 
-let rec write_tree ob tagged (x : tree) =
+let rec write_t ob tagged (x : tree) =
   match x with
       `Bool x ->
 	if tagged then
@@ -347,11 +336,6 @@ let rec write_tree ob tagged (x : tree) =
 	if tagged then
 	  write_tag ob int64_tag;
 	write_untagged_int64 ob x
-
-    | `Int128 x ->
-	if tagged then
-	  write_tag ob int128_tag;
-	write_untagged_int128 ob x
 
     | `Float64 x ->
 	if tagged then
@@ -383,7 +367,7 @@ let rec write_tree ob tagged (x : tree) =
 	       Bi_vint.write_uvint ob len;
 	       if len > 0 then (
 		 write_tag ob node_tag;
-		 Array.iter (write_tree ob false) a
+		 Array.iter (write_t ob false) a
 	       )
 	)
 
@@ -391,7 +375,7 @@ let rec write_tree ob tagged (x : tree) =
 	if tagged then
 	  write_tag ob tuple_tag;
 	Bi_vint.write_uvint ob (Array.length a);
-	Array.iter (write_tree ob true) a
+	Array.iter (write_t ob true) a
 
     | `Record a ->
 	if tagged then
@@ -405,7 +389,7 @@ let rec write_tree ob tagged (x : tree) =
 	write_numtag ob i (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_tree ob true v)
+	   | Some v -> write_t ob true v)
 
     | `Variant (o, h, x) ->
 	if tagged then
@@ -413,7 +397,7 @@ let rec write_tree ob tagged (x : tree) =
 	write_hashtag ob h (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_tree ob true v)
+	   | Some v -> write_t ob true v)
 
     | `Record_table o ->
 	if tagged then
@@ -435,9 +419,9 @@ let rec write_tree ob tagged (x : tree) =
 		   for i = 0 to row_num - 1 do
 		     let ai = a.(i) in
 		     if Array.length ai <> col_num then
-		       invalid_arg "Bi_io.write_tree: Malformed `Record_table";
+		       invalid_arg "Bi_io.write_t: Malformed `Record_table";
 		     for j = 0 to col_num - 1 do
-		       write_tree ob false ai.(j)
+		       write_t ob false ai.(j)
 		     done
 		   done
 		 )
@@ -446,11 +430,14 @@ let rec write_tree ob tagged (x : tree) =
 
 and write_field ob (s, h, x) =
   write_hashtag ob h true;
-  write_tree ob true x
+  write_t ob true x
+
+let write_tree ob x =
+  write_t ob true x
 
 let string_of_tree x =
   let ob = Bi_outbuf.create 1000 in
-  write_tree ob true x;
+  write_tree ob x;
   Bi_outbuf.contents ob
 
 let tag_of_tree (x : tree) =
@@ -460,7 +447,6 @@ let tag_of_tree (x : tree) =
     | `Int16 _ -> int16_tag
     | `Int32 _ -> int32_tag
     | `Int64 _ -> int64_tag
-    | `Int128 _ -> int128_tag
     | `Float64 _ -> float64_tag
     | `Uvint _ -> uvint_tag
     | `Svint _ -> svint_tag
@@ -545,10 +531,6 @@ let read_untagged_string ib =
   done;
   str
 
-let read_untagged_int128 ib =
-  let i = Bi_inbuf.read ib 16 in
-  String.sub ib.i_s i 16
-
 let read_untagged_uvint = Bi_vint.read_uvint
 let read_untagged_svint = Bi_vint.read_svint
 
@@ -562,8 +544,6 @@ let read_int32 ib = `Int32 (read_untagged_int32 ib)
 
 let read_int64 ib = `Int64 (read_untagged_int64 ib)
 
-let read_int128 ib = `Int128 (read_untagged_int128 ib)
-
 let read_float ib =
   `Float64 (read_untagged_float64 ib)
 
@@ -574,7 +554,7 @@ let read_string ib = `String (read_untagged_string ib)
 
 let print s = print_string s; print_newline ()
 
-let tree_of_string ?(unhash = make_unhash [])  s : tree =
+let read_tree ?(unhash = make_unhash []) ib : tree =
 
   let rec read_array ib =
     let len = Bi_vint.read_uvint ib in
@@ -653,7 +633,6 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
     | 2 (* int16 *) -> read_int16
     | 3 (* int32 *) -> read_int32
     | 4 (* int64 *) -> read_int64
-    | 5 (* int128 *) -> read_int128
     | 12 (* float *) -> read_float
     | 16 (* uvint *) -> read_uvint
     | 17 (* svint *) -> read_svint
@@ -670,7 +649,9 @@ let tree_of_string ?(unhash = make_unhash [])  s : tree =
     reader_of_tag (read_tag ib) ib
       
   in
-  read_tree (Bi_inbuf.from_string s)
+  read_tree ib
+
+let tree_of_string ?unhash s = read_tree ?unhash (Bi_inbuf.from_string s)
 
 
 let skip_bytes ib n = ignore (Bi_inbuf.read ib n)
@@ -680,7 +661,6 @@ let skip_int8 ib = skip_bytes ib 1
 let skip_int16 ib = skip_bytes ib 2
 let skip_int32 ib = skip_bytes ib 4
 let skip_int64 ib = skip_bytes ib 8
-let skip_int128 ib = skip_bytes ib 16
 let skip_float ib = skip_bytes ib 8
 let skip_uvint ib = ignore (read_untagged_uvint ib)
 let skip_svint ib = ignore (read_untagged_svint ib)
@@ -754,7 +734,6 @@ and skipper_of_tag = function
   | 2 (* int16 *) -> skip_int16
   | 3 (* int32 *) -> skip_int32
   | 4 (* int64 *) -> skip_int64
-  | 5 (* int128 *) -> skip_int128
   | 12 (* float *) -> skip_float
   | 16 (* uvint *) -> skip_uvint
   | 17 (* svint *) -> skip_svint
@@ -794,7 +773,6 @@ struct
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
       | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)
-      | `Int128 x -> Atom ("0x" ^ Digest.to_hex x, atom)
       | `Float64 x -> Atom (string_of_float x, atom)
       | `Uvint x -> Atom (string_of_int x, atom)
       | `Svint x -> Atom (string_of_int x, atom)

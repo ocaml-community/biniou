@@ -14,7 +14,7 @@
          | RECORD
          | NUM_VARIANT
          | VARIANT
-         | RECORD_TABLE
+         | TABLE
 
    ATOM ::= bool     // 0 for false, 1 for true, using one byte
           | int8     // 1 arbitrary byte
@@ -31,7 +31,7 @@
    VARIANT ::= VARIANT_TAG BOXVAL?
    TUPLE ::= LENGTH BOXVAL*
    RECORD ::= LENGTH (FIELD_TAG BOXVAL)*
-   RECORD_TABLE ::=
+   TABLE ::=
        LENGTH (LENGTH (FIELD_TAG TAG)* (VAL* )* )? // list of records
 
    TAG ::= int8
@@ -56,7 +56,7 @@ v}
    - record: 21
    - numeric variant: 22
    - variant: 23
-   - record_table: 25
+   - table: 25
 
    Variant and field tags are stored using 4 bytes.
    The first bit is 0 for variants without an argument, and 1 for
@@ -94,7 +94,7 @@ val tuple_tag : node_tag (** Tag indicating a tuple node. *)
 val record_tag : node_tag (** Tag indicating a record node. *)
 val num_variant_tag : node_tag (** Tag indicating a num_variant node. *)
 val variant_tag : node_tag (** Tag indicating a variant node. *)
-val record_table_tag : node_tag (** Tag indicating a record_table node. *)
+val table_tag : node_tag (** Tag indicating a table node. *)
 
 val write_tag : Bi_outbuf.t -> node_tag -> unit
   (** Write one-byte tag to a buffer. *)
@@ -219,7 +219,7 @@ type tree =
     | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
-    | `Record_table of 
+    | `Table of 
 	((string option * hash * node_tag) array * tree array array) option ]
   (** Tree representing serialized data, useful for testing
       and for untyped transformations. *)

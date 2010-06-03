@@ -21,9 +21,7 @@ let tuple_tag = 20
 let record_tag = 21
 let num_variant_tag = 22
 let variant_tag = 23
-let tuple_table_tag = 24
-let record_table_tag = 25 
-let matrix_tag = 26
+let table_tag = 25 
 
 type hash = int
 
@@ -45,7 +43,7 @@ type tree =
     | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
-    | `Record_table of 
+    | `Table of 
 	((string option * hash * node_tag) array * tree array array) option ]
     
 (* extend sign bit *)
@@ -399,9 +397,9 @@ let rec write_t ob tagged (x : tree) =
 	     None -> ()
 	   | Some v -> write_t ob true v)
 
-    | `Record_table o ->
+    | `Table o ->
 	if tagged then
-	  write_tag ob record_table_tag;
+	  write_tag ob table_tag;
 	(match o with
 	     None -> Bi_vint.write_uvint ob 0
 	   | Some (fields, a) ->
@@ -419,7 +417,7 @@ let rec write_t ob tagged (x : tree) =
 		   for i = 0 to row_num - 1 do
 		     let ai = a.(i) in
 		     if Array.length ai <> col_num then
-		       invalid_arg "Bi_io.write_t: Malformed `Record_table";
+		       invalid_arg "Bi_io.write_t: Malformed `Table";
 		     for j = 0 to col_num - 1 do
 		       write_t ob false ai.(j)
 		     done
@@ -456,7 +454,7 @@ let tag_of_tree (x : tree) =
     | `Record _ -> record_tag
     | `Num_variant _ -> num_variant_tag
     | `Variant _ -> variant_tag
-    | `Record_table _ -> record_table_tag
+    | `Table _ -> table_tag
 
 
 let tag_error () =
@@ -603,10 +601,10 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
   and read_variant ib =
     read_hashtag ib read_variant_cont
       
-  and read_record_table ib =
+  and read_table ib =
     let row_num = Bi_vint.read_uvint ib in
     if row_num = 0 then
-      `Record_table None
+      `Table None
     else
       let col_num = Bi_vint.read_uvint ib in
       let fields = 
@@ -625,7 +623,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
 	  (fun _ ->
 	     Array.init col_num (fun j -> readers.(j) ib))
       in
-      `Record_table (Some (fields, a))
+      `Table (Some (fields, a))
 	
   and reader_of_tag = function
       0 (* bool *) -> read_bool
@@ -642,7 +640,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 21 (* record *) -> read_record
     | 22 (* num_variant *) -> read_num_variant
     | 23 (* variant *) -> read_variant
-    | 25 (* record_table *) -> read_record_table
+    | 25 (* table *) -> read_table
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
   and read_tree ib : tree =
@@ -709,7 +707,7 @@ and skip_variant_cont ib h has_arg =
 and skip_variant ib =
   read_hashtag ib skip_variant_cont
     
-and skip_record_table ib =
+and skip_table ib =
   let row_num = Bi_vint.read_uvint ib in
   if row_num = 0 then
     ()
@@ -743,7 +741,7 @@ and skipper_of_tag = function
   | 21 (* record *) -> skip_record
   | 22 (* num_variant *) -> skip_num_variant
   | 23 (* variant *) -> skip_variant
-  | 25 (* record_table *) -> skip_record_table
+  | 25 (* table *) -> skip_table
   | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
 and skip ib : unit =
@@ -803,8 +801,8 @@ struct
 		 List (("<", "", ">", tuple),
 		       [ Label ((Atom (name ^ ":", atom), label), format x) ])
 	  )
-      | `Record_table None -> Atom ("[]", atom)
-      | `Record_table (Some (header, aa)) ->
+      | `Table None -> Atom ("[]", atom)
+      | `Table (Some (header, aa)) ->
 	  let record_array =
 	    `Array (
 	      Some (
@@ -821,7 +819,7 @@ struct
 		) aa
 	      )
 	    ) in
-	    format record_array
+	  format record_array
 	    
   and format_field (o, h, x) =
     let s =

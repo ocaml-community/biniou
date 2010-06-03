@@ -17,7 +17,7 @@ let test_tree : tree =
       (Some "variant2", hash_name "variant2", 
        `Variant (Some "Bar", hash_name "Bar", None));
     |];
-    `Record_table (
+    `Table (
       Some (
 	[| (Some "name", hash_name "name", string_tag);
 	   (Some "age", hash_name "age", uvint_tag) |],

@@ -60,13 +60,13 @@ let alloc b n =
   b.o_len <- pos + n;
   pos
 
-let blit s pos len b =
+let add_substring b s pos len =
   extend b len;
   String.blit s pos b.o_s b.o_len len;
   b.o_len <- b.o_len + len
 
 let add_string b s =
-  blit s 0 (String.length s) b
+  add_substring b s 0 (String.length s)
   
 
 let add_char b c =

@@ -69,9 +69,9 @@ val alloc : t -> int -> int
 val add_string : t -> string -> unit
   (** Add a string to the buffer. *)
 
-val blit : string -> int -> int -> t -> unit
-  (** [blit src srcpos dst len] copies [len] bytes starting from
-     string [src] to buffer [dst]. *)
+val add_substring : t -> string -> int -> int -> unit
+  (** [add_substring dst src srcpos len] copies [len] bytes from
+     string [src] to buffer [dst] starting from position [srcpos]. *)
 
 val add_char : t -> char -> unit
   (** Add a byte to the buffer. *)

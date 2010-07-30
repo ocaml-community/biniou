@@ -21,6 +21,7 @@ let tuple_tag = 20
 let record_tag = 21
 let num_variant_tag = 22
 let variant_tag = 23
+let unit_tag = 24
 let table_tag = 25 
 
 type hash = int
@@ -29,7 +30,8 @@ type hash = int
   Data tree, for testing purposes.
 *)
 type tree =
-    [ `Bool of bool
+    [ `Unit
+    | `Bool of bool
     | `Int8 of char
     | `Int16 of int
     | `Int32 of Int32.t
@@ -168,6 +170,9 @@ let make_unhash l =
 let write_tag ob x =
   Bi_outbuf.add_char ob (Char.chr x)
 
+let write_untagged_unit ob () =
+  Bi_outbuf.add_char ob '\x00'
+
 let write_untagged_bool ob x =
   Bi_outbuf.add_char ob (if x then '\x01' else '\x00')
 
@@ -265,6 +270,10 @@ let write_untagged_string ob s =
 let write_untagged_uvint = Bi_vint.write_uvint
 let write_untagged_svint = Bi_vint.write_svint
 
+let write_unit ob () =
+  write_tag ob unit_tag;
+  write_untagged_unit ob ()
+
 let write_bool ob x =
   write_tag ob bool_tag;
   write_untagged_bool ob x
@@ -310,7 +319,12 @@ let write_svint ob x =
 
 let rec write_t ob tagged (x : tree) =
   match x with
-      `Bool x ->
+      `Unit ->
+	if tagged then
+	  write_tag ob unit_tag;
+	write_untagged_unit ob ()
+
+    | `Bool x ->
 	if tagged then
 	  write_tag ob bool_tag;
 	write_untagged_bool ob x
@@ -440,7 +454,8 @@ let string_of_tree x =
 
 let tag_of_tree (x : tree) =
   match x with
-      `Bool _ -> bool_tag
+      `Unit -> unit_tag
+    | `Bool _ -> bool_tag
     | `Int8 _ -> int8_tag
     | `Int16 _ -> int16_tag
     | `Int32 _ -> int32_tag
@@ -462,6 +477,11 @@ let tag_error () =
 
 let read_tag ib =
   Char.code (Bi_inbuf.read_char ib)
+
+let read_untagged_unit ib =
+  match Bi_inbuf.read_char ib with
+      '\x00' -> ()
+    | _ -> Bi_util.error "Corrupted data (unit value)"
 
 let read_untagged_bool ib =
   match Bi_inbuf.read_char ib with
@@ -531,6 +551,8 @@ let read_untagged_string ib =
 
 let read_untagged_uvint = Bi_vint.read_uvint
 let read_untagged_svint = Bi_vint.read_svint
+
+let read_unit ib = read_untagged_unit ib; `Unit
 
 let read_bool ib = `Bool (read_untagged_bool ib)
 
@@ -640,6 +662,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 21 (* record *) -> read_record
     | 22 (* num_variant *) -> read_num_variant
     | 23 (* variant *) -> read_variant
+    | 24 (* unit *) -> read_unit
     | 25 (* table *) -> read_table
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
@@ -654,6 +677,7 @@ let tree_of_string ?unhash s = read_tree ?unhash (Bi_inbuf.from_string s)
 
 let skip_bytes ib n = ignore (Bi_inbuf.read ib n)
 
+let skip_unit ib = skip_bytes ib 1
 let skip_bool ib = skip_bytes ib 1
 let skip_int8 ib = skip_bytes ib 1
 let skip_int16 ib = skip_bytes ib 2
@@ -741,6 +765,7 @@ and skipper_of_tag = function
   | 21 (* record *) -> skip_record
   | 22 (* num_variant *) -> skip_num_variant
   | 23 (* variant *) -> skip_variant
+  | 24 (* unit *) -> skip_unit
   | 25 (* table *) -> skip_table
   | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
@@ -766,7 +791,8 @@ struct
 
   let rec format (x : tree) =
     match x with
-	`Bool x -> Atom ((if x then "true" else "false"), atom)
+	`Unit -> Atom ("unit", atom)
+      | `Bool x -> Atom ((if x then "true" else "false"), atom)
       | `Int8 x -> Atom (sprintf "0x%02x" (Char.code x), atom)
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)

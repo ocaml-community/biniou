@@ -6,6 +6,7 @@ open Bi_io
 
 let test_tree : tree =
   `Tuple [|
+    `Unit;
     `Num_variant (0, None);
     `Num_variant (0, Some (`Svint 127));
     `Array (Some (svint_tag, [| `Svint 1; `Svint 2 |]));
@@ -77,6 +78,7 @@ let test_json () =
   let s =
     "[\
        null,\
+       null,\
        127,\
        [1,2],\
        {\"abc\":\"hello\",\
@@ -113,6 +115,7 @@ type person = {
 
 let native_test_tree =
   (
+    (),
     None,
     Some 127,
     [| 1; 2 |],

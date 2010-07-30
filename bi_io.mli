@@ -16,7 +16,8 @@
          | VARIANT
          | TABLE
 
-   ATOM ::= bool     // 0 for false, 1 for true, using one byte
+   ATOM ::= unit     // 0, using one byte
+          | bool     // 0 for false, 1 for true, using one byte
           | int8     // 1 arbitrary byte
           | int16    // 2 arbitrary bytes
           | int32    // 4 arbitrary bytes
@@ -56,6 +57,7 @@ v}
    - record: 21
    - numeric variant: 22
    - variant: 23
+   - unit: 24
    - table: 25
 
    Variant and field tags are stored using 4 bytes.
@@ -94,6 +96,7 @@ val tuple_tag : node_tag (** Tag indicating a tuple node. *)
 val record_tag : node_tag (** Tag indicating a record node. *)
 val num_variant_tag : node_tag (** Tag indicating a num_variant node. *)
 val variant_tag : node_tag (** Tag indicating a variant node. *)
+val unit_tag : node_tag (** Tag indicating a unit node. *)
 val table_tag : node_tag (** Tag indicating a table node. *)
 
 val write_tag : Bi_outbuf.t -> node_tag -> unit
@@ -159,6 +162,7 @@ val read_numtag :
     to an output buffer
     while the other [write_] functions write a tagged value (BOXVAL). *)
 
+val write_untagged_unit : Bi_outbuf.t -> unit -> unit
 val write_untagged_bool : Bi_outbuf.t -> bool -> unit
 val write_untagged_char : Bi_outbuf.t -> char -> unit
 val write_untagged_int8 : Bi_outbuf.t -> int -> unit
@@ -170,6 +174,7 @@ val write_untagged_string : Bi_outbuf.t -> string -> unit
 val write_untagged_uvint : Bi_outbuf.t -> int -> unit
 val write_untagged_svint : Bi_outbuf.t -> int -> unit
 
+val write_unit : Bi_outbuf.t -> unit -> unit
 val write_bool : Bi_outbuf.t -> bool -> unit
 val write_char : Bi_outbuf.t -> char -> unit
 val write_int8 : Bi_outbuf.t -> int -> unit
@@ -186,6 +191,7 @@ val write_svint : Bi_outbuf.t -> int -> unit
 (** The [read_untagged_] functions read an untagged value (VAL)
     from an input buffer. *)
 
+val read_untagged_unit : Bi_inbuf.t -> unit
 val read_untagged_bool : Bi_inbuf.t -> bool
 val read_untagged_char : Bi_inbuf.t -> char
 val read_untagged_int8 : Bi_inbuf.t -> int
@@ -205,6 +211,7 @@ val skip : Bi_inbuf.t -> unit
 
 type tree =
     [
+    | `Unit
     | `Bool of bool
     | `Int8 of char
     | `Int16 of int

@@ -71,3 +71,46 @@ clean:
 	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot 
 	rm -f bdump bdump.exe test_biniou test_biniou.exe META
 	rm -rf doc
+
+
+SUBDIRS = 
+SVNURL = svn://svn.forge.ocamlcore.org/svnroot/cppo/trunk/biniou
+
+.PHONY: archive
+archive:
+	@echo "Making archive for version $(VERSION)"
+	@if [ -z "$$WWW" ]; then \
+		echo '*** Environment variable WWW is undefined ***' >&2; \
+		exit 1; \
+	fi
+	@if [ -n "$$(svn status -q)" ]; then \
+		echo "*** There are uncommitted changes, aborting. ***" >&2; \
+		exit 1; \
+	fi
+	$(MAKE) && ./bdump -help > $$WWW/bdump-help.txt
+	rm -rf /tmp/biniou /tmp/biniou-$(VERSION) && \
+		cd /tmp && \
+		svn co "$(SVNURL)" && \
+		for x in "." $(SUBDIRS); do \
+			rm -rf /tmp/biniou/$$x/.svn; \
+		done && \
+		cd /tmp && cp -r biniou biniou-$(VERSION) && \
+		tar czf biniou.tar.gz biniou && \
+		tar cjf biniou.tar.bz2 biniou && \
+		tar czf biniou-$(VERSION).tar.gz biniou-$(VERSION) && \
+		tar cjf biniou-$(VERSION).tar.bz2 biniou-$(VERSION)
+	mv /tmp/biniou.tar.gz /tmp/biniou.tar.bz2 ../releases
+	mv /tmp/biniou-$(VERSION).tar.gz \
+		/tmp/biniou-$(VERSION).tar.bz2 ../releases
+	cp ../releases/biniou.tar.gz $$WWW/
+	cp ../releases/biniou.tar.bz2 $$WWW/
+	cp ../releases/biniou-$(VERSION).tar.gz $$WWW/
+	cp ../releases/biniou-$(VERSION).tar.bz2 $$WWW/
+	cd ../releases && \
+		svn add biniou.tar.gz biniou.tar.bz2 \
+			biniou-$(VERSION).tar.gz biniou-$(VERSION).tar.bz2 && \
+		svn commit -m "biniou version $(VERSION)"
+	cp LICENSE $$WWW/biniou-license.txt
+	cp Changes $$WWW/biniou-changes.txt
+	echo 'let biniou_version = "$(VERSION)"' \
+		> $$WWW/biniou-version.ml

@@ -88,6 +88,8 @@ archive:
 		exit 1; \
 	fi
 	$(MAKE) && ./bdump -help > $$WWW/bdump-help.txt
+	mkdir -p $$WWW/biniou-doc
+	$(MAKE) doc && cp doc/* $$WWW/biniou-doc/
 	rm -rf /tmp/biniou /tmp/biniou-$(VERSION) && \
 		cd /tmp && \
 		svn co "$(SVNURL)" && \

@@ -74,7 +74,7 @@ clean:
 
 
 SUBDIRS = 
-SVNURL = svn://svn.forge.ocamlcore.org/svnroot/cppo/trunk/biniou
+SVNURL = svn://svn.forge.ocamlcore.org/svnroot/biniou/trunk/biniou
 
 .PHONY: archive
 archive:

@@ -58,7 +58,8 @@ install: META
 	test ! -f bdump || cp bdump $(BINDIR)/
 	test ! -f bdump.exe || cp bdump.exe $(BINDIR)/
 	ocamlfind install biniou META \
-          $$(ls $(MLI) $(CMI) $(CMO) $(CMX) $(O) biniou.cma biniou.cmxa)
+          $$(ls $(MLI) $(CMI) $(CMO) $(CMX) $(O) \
+             biniou.cma biniou.cmxa biniou.a)
 
 uninstall:
 	test ! -f $(BINDIR)/bdump || rm $(BINDIR)/bdump

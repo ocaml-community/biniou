@@ -73,10 +73,8 @@ let from_string ?(pos = 0) s = {
 *)
 let rec not_really_input ic s pos len accu =
   let n = input ic s pos len in
-  if n < len then
-    if n = 0 then 0
-    else
-      not_really_input ic s (pos + n) (len - n) (accu + n)
+  if n < len && n > 0 then
+    not_really_input ic s (pos + n) (len - n) (accu + n)
   else
     accu + n
 

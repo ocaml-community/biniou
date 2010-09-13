@@ -187,12 +187,31 @@ let rd_perf () =
   time "rd marshal" marshal_rd_perf n
 
 
-let _ =
+let test_channels x =
+  let file = "test_channels.bin" in
+  let oc = open_out_bin file in
+  let ob = Bi_outbuf.create_channel_writer oc in
+  write_tree ob x;
+  Bi_outbuf.flush_channel_writer ob;
+  close_out oc;
+  let ic = open_in_bin file in
+  let ib = Bi_inbuf.from_channel ic in
+  let x' = read_tree ib in
+  if x <> x' then (
+    printf "Error in writing or reading via channels:\n";
+    Bi_io.print_view (string_of_tree x');
+    print_newline ();
+  )
+
+let () =
   let s = string_of_tree test_tree in
   Bi_io.print_view s;
   print_newline ();
-  if s <> string_of_tree (tree_of_string s) then
+  let x = tree_of_string s in
+  if s <> string_of_tree x then
     printf "Error in writing or reading\n%!";
+
+  test_channels x;
 
   let oc = open_out_bin "test.bin" in
   output_string oc s;

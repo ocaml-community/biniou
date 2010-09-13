@@ -72,7 +72,7 @@ clean:
 	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot 
 	rm -f bdump bdump.exe test_biniou test_biniou.exe META
 	rm -rf doc
-
+	rm -f test.bin test_channels.bin
 
 SUBDIRS = 
 SVNURL = svn://svn.forge.ocamlcore.org/svnroot/biniou/trunk/biniou

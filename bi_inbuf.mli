@@ -84,7 +84,7 @@ val from_string : ?pos:int -> string -> t
     Create an input buffer from a string.
   *)
 
-val from_channel : ?len:int -> in_channel -> t (* TODO: test this function *)
+val from_channel : ?len:int -> in_channel -> t
   (**
     Create an input buffer from an in_channel.
     Such a buffer is not extensible and [read] requests may not exceed [len].

@@ -1,4 +1,8 @@
 Releases of biniou
 ==================
 
-0.9.0: first release 2010-08-04
+
+2010-09-13 0.9.1: [bug] fixed Bi_inbuf.from_channel
+                  [pkg] added INSTALL file
+
+2010-08-04 0.9.0: first release

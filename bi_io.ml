@@ -851,7 +851,7 @@ struct
     let s =
       match o with
 	  None -> sprintf "#%08lx" (Int32.of_int h)
-	| Some s -> sprintf "<%s>" (String.escaped s)
+	| Some s -> sprintf "%S" s
     in
     Label ((Atom (sprintf "%s:" s, atom), label), format x)
 end

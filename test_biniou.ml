@@ -4,12 +4,15 @@ open Printf
 
 open Bi_io
 
+let rec deep_cycle = `Ref (`Tuple [| `String "x"; `Ref deep_cycle |])
+
 let test_tree : tree =
   `Tuple [|
     `Unit;
     `Num_variant (0, None);
     `Num_variant (0, Some (`Svint 127));
     `Array (Some (svint_tag, [| `Svint 1; `Svint 2 |]));
+    `Tuple [| `Ref deep_cycle; `Ref deep_cycle |];
     `Record [|
       (Some "abc", hash_name "abc", `String "hello");
       (Some "number", hash_name "number", `Svint 123);
@@ -143,7 +146,7 @@ let native_test_tree =
     |]
   )
 
-let marshal x = Marshal.to_string x [Marshal.No_sharing]
+let marshal x = Marshal.to_string x [(*Marshal.No_sharing*)]
 let unmarshal s = Marshal.from_string s 0
 
 let native_test_tree_marshalled = marshal native_test_tree
@@ -204,6 +207,10 @@ let test_channels x =
   )
 
 let () =
+  let tmp = string_of_tree deep_cycle in
+  printf "%S\n%!" tmp;
+  Bi_io.print_view tmp;
+
   let s = string_of_tree test_tree in
   Bi_io.print_view s;
   print_newline ();

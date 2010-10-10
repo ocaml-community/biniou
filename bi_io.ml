@@ -22,7 +22,8 @@ let record_tag = 21
 let num_variant_tag = 22
 let variant_tag = 23
 let unit_tag = 24
-let table_tag = 25 
+let table_tag = 25
+let ref_tag = 26 
 
 type hash = int
 
@@ -46,7 +47,8 @@ type tree =
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
     | `Table of 
-	((string option * hash * node_tag) array * tree array array) option ]
+	((string option * hash * node_tag) array * tree array array) option
+    | `Ref of tree ]
     
 (* extend sign bit *)
 let make_signed x =
@@ -317,7 +319,7 @@ let write_svint ob x =
 
 
 
-let rec write_t ob tagged (x : tree) =
+let rec write_t ob shared tagged (x : tree) =
   match x with
       `Unit ->
 	if tagged then
@@ -379,7 +381,7 @@ let rec write_t ob tagged (x : tree) =
 	       Bi_vint.write_uvint ob len;
 	       if len > 0 then (
 		 write_tag ob node_tag;
-		 Array.iter (write_t ob false) a
+		 Array.iter (write_t ob shared false) a
 	       )
 	)
 
@@ -387,13 +389,13 @@ let rec write_t ob tagged (x : tree) =
 	if tagged then
 	  write_tag ob tuple_tag;
 	Bi_vint.write_uvint ob (Array.length a);
-	Array.iter (write_t ob true) a
+	Array.iter (write_t ob shared true) a
 
     | `Record a ->
 	if tagged then
 	  write_tag ob record_tag;
 	Bi_vint.write_uvint ob (Array.length a);
-	Array.iter (write_field ob) a
+        Array.iter (write_field ob shared) a
 
     | `Num_variant (i, x) ->
 	if tagged then
@@ -401,7 +403,7 @@ let rec write_t ob tagged (x : tree) =
 	write_numtag ob i (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_t ob true v)
+	   | Some v -> write_t ob shared true v)
 
     | `Variant (o, h, x) ->
 	if tagged then
@@ -409,7 +411,7 @@ let rec write_t ob tagged (x : tree) =
 	write_hashtag ob h (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_t ob true v)
+	   | Some v -> write_t ob shared true v)
 
     | `Table o ->
 	if tagged then
@@ -433,19 +435,27 @@ let rec write_t ob tagged (x : tree) =
 		     if Array.length ai <> col_num then
 		       invalid_arg "Bi_io.write_t: Malformed `Table";
 		     for j = 0 to col_num - 1 do
-		       write_t ob false ai.(j)
+		       write_t ob shared false ai.(j)
 		     done
 		   done
 		 )
 	)
 
+    | `Ref x ->
+        if tagged then
+          write_tag ob ref_tag;
+        let offset = Bi_share.Wr.put shared x (ob.o_offs + ob.o_len) in
+        Bi_vint.write_uvint ob offset;
+        if offset = 0 then
+          write_t ob shared true x
 
-and write_field ob (s, h, x) =
+and write_field ob shared (s, h, x) =
   write_hashtag ob h true;
-  write_t ob true x
+  write_t ob shared true x
 
 let write_tree ob x =
-  write_t ob true x
+  let shared = Bi_share.Wr.create 512 in
+  write_t ob shared true x
 
 let string_of_tree x =
   let ob = Bi_outbuf.create 1000 in
@@ -470,6 +480,7 @@ let tag_of_tree (x : tree) =
     | `Num_variant _ -> num_variant_tag
     | `Variant _ -> variant_tag
     | `Table _ -> table_tag
+    | `Ref _ -> ref_tag
 
 
 let tag_error () =
@@ -576,6 +587,8 @@ let print s = print_string s; print_newline ()
 
 let read_tree ?(unhash = make_unhash []) ib : tree =
 
+  let shared = Bi_share.Rd.create 512 in
+
   let rec read_array ib =
     let len = Bi_vint.read_uvint ib in
     if len = 0 then `Array None
@@ -647,6 +660,18 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
       in
       `Table (Some (fields, a))
 	
+  and read_ref ib =
+    let pos = ib.i_offs + ib.i_len in
+    let offset = Bi_vint.read_uvint ib in
+    if offset = 0 then
+      let rec r = `Ref r in
+      Bi_share.Rd.put shared pos r;
+      let x = read_tree ib in
+      Obj.set_field (Obj.repr r) 1 (Obj.repr x);
+      r
+    else
+      Bi_share.Rd.get shared (pos - offset)
+
   and reader_of_tag = function
       0 (* bool *) -> read_bool
     | 1 (* int8 *) -> read_int8
@@ -664,6 +689,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 23 (* variant *) -> read_variant
     | 24 (* unit *) -> read_unit
     | 25 (* table *) -> read_table
+    | 26 (* ref *) -> read_ref
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
   and read_tree ib : tree =
@@ -773,6 +799,18 @@ and skip ib : unit =
   skipper_of_tag (read_tag ib) ib
     
 
+(* Equivalent of Array.map that guarantees a left-to-right order *)
+let array_map f a =
+  let len = Array.length a in
+  if len = 0 then [||]
+  else (
+    let r = Array.make len (f (Array.unsafe_get a 0)) in
+    for i = 1 to len - 1 do
+      Array.unsafe_set r i (f (Array.unsafe_get a i))
+    done;
+    r
+  )
+
 
 module Pp =
 struct
@@ -786,12 +824,12 @@ struct
 		  align_closing = false }
   let variant = { list with
 		    separators_stick_left = true }
-		    
-  let map f a = Array.to_list (Array.map f a)
 
-  let rec format (x : tree) =
+  let map f a = Array.to_list (array_map f a)
+
+  let rec format shared (x : tree) =
     match x with
-	`Unit -> Atom ("unit", atom)
+        `Unit -> Atom ("unit", atom)
       | `Bool x -> Atom ((if x then "true" else "false"), atom)
       | `Int8 x -> Atom (sprintf "0x%02x" (Char.code x), atom)
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
@@ -802,9 +840,10 @@ struct
       | `Svint x -> Atom (string_of_int x, atom)
       | `String s -> Atom (sprintf "%S" s, atom)
       | `Array None -> Atom ("[]", atom)
-      | `Array (Some (_, a)) -> List (("[", ",", "]", array), map format a)
-      | `Tuple a -> List (("(", ",", ")", tuple), map format a)
-      | `Record a -> List (("{", ",", "}", record), map format_field a)
+      | `Array (Some (_, a)) ->
+          List (("[", ",", "]", array), map (format shared) a)
+      | `Tuple a -> List (("(", ",", ")", tuple), map (format shared) a)
+      | `Record a -> List (("{", ",", "}", record), map (format_field shared) a)
       | `Num_variant (i, o) ->
 	  let suffix =
 	    if i = 0 then ""
@@ -814,7 +853,7 @@ struct
 	       None -> Atom ("None" ^ suffix, atom)
 	     | Some x ->
 		 let cons = Atom ("Some" ^ suffix, atom) in
-		 Label ((cons, label), format x))
+		 Label ((cons, label), format shared x))
       | `Variant (opt_name, h, o) ->
 	  let name =
 	    match opt_name with
@@ -825,7 +864,8 @@ struct
 	       None -> Atom ("<" ^ name ^ ">", atom)
 	     | Some x ->
 		 List (("<", "", ">", tuple),
-		       [ Label ((Atom (name ^ ":", atom), label), format x) ])
+                       [ Label ((Atom (name ^ ":", atom), label),
+                                format shared x) ])
 	  )
       | `Table None -> Atom ("[]", atom)
       | `Table (Some (header, aa)) ->
@@ -845,23 +885,38 @@ struct
 		) aa
 	      )
 	    ) in
-	  format record_array
+	  format shared record_array
 	    
-  and format_field (o, h, x) =
+      | `Ref x ->
+          let tbl, p = shared in
+          incr p;
+          let pos = !p in
+          let offset = Bi_share.Wr.put tbl x pos in
+          if offset = 0 then
+            Label ((Atom (sprintf "ref%i:" pos, atom), label),
+                   format shared x)
+          else
+            Atom (sprintf "ref%i" (pos - offset), atom)
+
+  and format_field shared (o, h, x) =
     let s =
       match o with
 	  None -> sprintf "#%08lx" (Int32.of_int h)
 	| Some s -> sprintf "%S" s
     in
-    Label ((Atom (sprintf "%s:" s, atom), label), format x)
+    Label ((Atom (sprintf "%s:" s, atom), label), format shared x)
 end
 
+let init () = (Bi_share.Wr.create 512, ref 0)
 
 let view ?unhash s =
-  Easy_format.Pretty.to_string (Pp.format (tree_of_string ?unhash s))
+  Easy_format.Pretty.to_string
+    (Pp.format (init ()) (tree_of_string ?unhash s))
 
 let print_view ?unhash s =
-  Easy_format.Pretty.to_stdout (Pp.format (tree_of_string ?unhash s))
+  Easy_format.Pretty.to_stdout
+    (Pp.format (init ()) (tree_of_string ?unhash s))
 
 let output_view ?unhash oc s =
-  Easy_format.Pretty.to_channel oc (Pp.format (tree_of_string ?unhash s))
+  Easy_format.Pretty.to_channel oc 
+    (Pp.format (init ()) (tree_of_string ?unhash s))

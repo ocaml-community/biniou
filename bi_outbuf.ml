@@ -4,6 +4,7 @@ type t = {
   mutable o_s : string;
   mutable o_max_len : int;
   mutable o_len : int;
+  mutable o_offs : int;
   o_init_len : int;
   o_make_room : (t -> int -> unit);
 }
@@ -27,6 +28,7 @@ let really_extend b n =
 
 let flush_to_channel oc b n =
   output oc b.o_s 0 b.o_len;
+  b.o_offs <- b.o_offs + b.o_len;
   b.o_len <- 0;
   if n > b.o_max_len then
     really_extend b n
@@ -36,6 +38,7 @@ let create ?(make_room = really_extend) n = {
   o_s = String.create n;
   o_max_len = n;
   o_len = 0;
+  o_offs = 0;
   o_init_len = n;
   o_make_room = make_room;
 }
@@ -94,11 +97,14 @@ let add_char4 b c1 c2 c3 c4 =
 
 
 
-let clear b = b.o_len <- 0
+let clear b =
+  b.o_offs <- 0;
+  b.o_len <- 0
 
 let reset b =
   if String.length b.o_s <> b.o_init_len then
     b.o_s <- String.create b.o_init_len;
+  b.o_offs <- 0;
   b.o_len <- 0
   
 let contents b = String.sub b.o_s 0 b.o_len

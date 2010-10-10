@@ -10,7 +10,13 @@ type t = {
     (** Same as [String.length s] *)
 
   mutable o_len : int;
-    (** Length of data already written = current position *)
+    (** Length of the data present in the buffer = current position
+        in the buffer *)
+
+  mutable o_offs : int;
+    (** Length of data written and flushed out of the buffer.
+        The total number of bytes written to the buffer
+        is therefore [o_offs + o_len]. *)
 
   o_init_len : int;
     (** Initial length of the buffer *)

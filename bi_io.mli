@@ -227,7 +227,8 @@ type tree =
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
     | `Table of 
-	((string option * hash * node_tag) array * tree array array) option ]
+	((string option * hash * node_tag) array * tree array array) option
+    | `Ref of tree ]
   (** Tree representing serialized data, useful for testing
       and for untyped transformations. *)
 

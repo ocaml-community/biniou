@@ -25,6 +25,7 @@ META: META.in Makefile
 	sed -e 's:@@VERSION@@:$(VERSION):' META.in > META
 
 SOURCES = bi_util.mli bi_util.ml \
+          bi_share.mli bi_share.ml \
           bi_outbuf.mli bi_outbuf.ml bi_inbuf.mli bi_inbuf.ml \
           bi_vint.mli bi_vint.ml bi_io.mli bi_io.ml
 

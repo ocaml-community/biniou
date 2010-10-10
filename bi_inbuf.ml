@@ -4,6 +4,7 @@ type t = {
   mutable i_s : string;
   mutable i_pos : int;
   mutable i_len : int;
+  mutable i_offs : int;
   mutable i_max_len : int;
   i_refill : (t -> int -> unit)
 }
@@ -63,6 +64,7 @@ let from_string ?(pos = 0) s = {
   i_s = s;
   i_pos = pos;
   i_len = String.length s;
+  i_offs = -pos;
   i_max_len = String.length s;
   i_refill = (fun ib n -> ())
 }
@@ -88,6 +90,7 @@ let refill_from_channel ic ib n =
       String.blit s ib.i_pos s 0 rem_len;
       let to_read = n - rem_len in
       let really_read = not_really_input ic s rem_len to_read 0 in
+      ib.i_offs <- ib.i_offs + ib.i_pos;
       ib.i_pos <- 0;
       ib.i_len <- rem_len + really_read
   )
@@ -96,6 +99,7 @@ let from_channel ?(len = 4096) ic = {
   i_s = String.create len;
   i_pos = 0;
   i_len = 0;
+  i_offs = 0;
   i_max_len = len;
   i_refill = refill_from_channel ic
 }

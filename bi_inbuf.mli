@@ -24,6 +24,15 @@ type t = {
       correct data segment.
     *)
 
+  mutable i_offs : int;
+    (** Length of data read and discarded from the buffer.
+        This indicates the position in the input stream of
+        the first byte of the buffer.
+        The current position in the input stream is [i_offs + i_pos].
+        The total length of input stream data put into the buffer is
+        [i_offs + i_len].
+    *)
+
   mutable i_max_len : int;
     (** This is the length of [i_s]. *)
 

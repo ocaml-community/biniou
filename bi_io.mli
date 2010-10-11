@@ -15,6 +15,7 @@
          | NUM_VARIANT
          | VARIANT
          | TABLE
+         | SHARED
 
    ATOM ::= unit     // 0, using one byte
           | bool     // 0 for false, 1 for true, using one byte
@@ -35,8 +36,14 @@
    TABLE ::=
        LENGTH (LENGTH (FIELD_TAG TAG)* (VAL* )* )? // list of records
 
+   SHARED ::= OFFSET BOXVAL?  // Value given iff the offset is 0.
+                              // Otherwise, the offset indicates the 
+                              // relative position to the left of a SHARED
+                              // to which we are redirected.
+
    TAG ::= int8
    LENGTH ::= uvint
+   OFFSET ::= uvint
    NUM_VARIANT_TAG ::= int8   // 0-127 if no argument, 128-255 if has argument
    VARIANT_TAG ::= int32      // first bit indicates argument, then 31-bit hash
    FIELD_TAG ::= int32        // 31-bit hash (first bit always 1)
@@ -59,6 +66,7 @@ v}
    - variant: 23
    - unit: 24
    - table: 25
+   - shared: 26
 
    Variant and field tags are stored using 4 bytes.
    The first bit is 0 for variants without an argument, and 1 for
@@ -98,6 +106,7 @@ val num_variant_tag : node_tag (** Tag indicating a num_variant node. *)
 val variant_tag : node_tag (** Tag indicating a variant node. *)
 val unit_tag : node_tag (** Tag indicating a unit node. *)
 val table_tag : node_tag (** Tag indicating a table node. *)
+val shared_tag : node_tag (** Tag indicating a shared node. *)
 
 val write_tag : Bi_outbuf.t -> node_tag -> unit
   (** Write one-byte tag to a buffer. *)
@@ -228,7 +237,7 @@ type tree =
     | `Variant of (string option * hash * tree option)
     | `Table of 
 	((string option * hash * node_tag) array * tree array array) option
-    | `Ref of tree ]
+    | `Shared of tree ]
   (** Tree representing serialized data, useful for testing
       and for untyped transformations. *)
 

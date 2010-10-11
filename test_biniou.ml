@@ -4,7 +4,7 @@ open Printf
 
 open Bi_io
 
-let rec deep_cycle = `Ref (`Tuple [| `String "x"; `Ref deep_cycle |])
+let rec deep_cycle = `Tuple [| `Shared deep_cycle |]
 
 let test_tree : tree =
   `Tuple [|
@@ -12,7 +12,7 @@ let test_tree : tree =
     `Num_variant (0, None);
     `Num_variant (0, Some (`Svint 127));
     `Array (Some (svint_tag, [| `Svint 1; `Svint 2 |]));
-    `Tuple [| `Ref deep_cycle; `Ref deep_cycle |];
+    `Tuple [| `Shared deep_cycle; `Shared deep_cycle |];
     `Record [|
       (Some "abc", hash_name "abc", `String "hello");
       (Some "number", hash_name "number", `Svint 123);
@@ -84,6 +84,7 @@ let test_json () =
        null,\
        127,\
        [1,2],\
+       [[1,[1]],1]\
        {\"abc\":\"hello\",\
        \"number\":123,\
        \"variant1\":[\"Foo\",-456],\
@@ -189,6 +190,8 @@ let rd_perf () =
   time "rd biniou" biniou_rd_perf n;
   time "rd marshal" marshal_rd_perf n
 
+let eq x y =
+  Marshal.to_string x [] = Marshal.to_string y []
 
 let test_channels x =
   let file = "test_channels.bin" in
@@ -200,17 +203,13 @@ let test_channels x =
   let ic = open_in_bin file in
   let ib = Bi_inbuf.from_channel ic in
   let x' = read_tree ib in
-  if x <> x' then (
+  if not (eq x x') then (
     printf "Error in writing or reading via channels:\n";
     Bi_io.print_view (string_of_tree x');
     print_newline ();
   )
 
 let () =
-  let tmp = string_of_tree deep_cycle in
-  printf "%S\n%!" tmp;
-  Bi_io.print_view tmp;
-
   let s = string_of_tree test_tree in
   Bi_io.print_view s;
   print_newline ();

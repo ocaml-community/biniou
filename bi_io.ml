@@ -23,7 +23,7 @@ let num_variant_tag = 22
 let variant_tag = 23
 let unit_tag = 24
 let table_tag = 25
-let ref_tag = 26 
+let shared_tag = 26 
 
 type hash = int
 
@@ -48,7 +48,7 @@ type tree =
     | `Variant of (string option * hash * tree option)
     | `Table of 
 	((string option * hash * node_tag) array * tree array array) option
-    | `Ref of tree ]
+    | `Shared of tree ]
     
 (* extend sign bit *)
 let make_signed x =
@@ -441,9 +441,9 @@ let rec write_t ob shared tagged (x : tree) =
 		 )
 	)
 
-    | `Ref x ->
+    | `Shared x ->
         if tagged then
-          write_tag ob ref_tag;
+          write_tag ob shared_tag;
         let offset = Bi_share.Wr.put shared x (ob.o_offs + ob.o_len) in
         Bi_vint.write_uvint ob offset;
         if offset = 0 then
@@ -480,7 +480,7 @@ let tag_of_tree (x : tree) =
     | `Num_variant _ -> num_variant_tag
     | `Variant _ -> variant_tag
     | `Table _ -> table_tag
-    | `Ref _ -> ref_tag
+    | `Shared _ -> shared_tag
 
 
 let tag_error () =
@@ -660,11 +660,11 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
       in
       `Table (Some (fields, a))
 	
-  and read_ref ib =
-    let pos = ib.i_offs + ib.i_len in
+  and read_shared ib =
+    let pos = ib.i_offs + ib.i_pos in
     let offset = Bi_vint.read_uvint ib in
     if offset = 0 then
-      let rec r = `Ref r in
+      let rec r = `Shared r in
       Bi_share.Rd.put shared pos r;
       let x = read_tree ib in
       Obj.set_field (Obj.repr r) 1 (Obj.repr x);
@@ -689,7 +689,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 23 (* variant *) -> read_variant
     | 24 (* unit *) -> read_unit
     | 25 (* table *) -> read_table
-    | 26 (* ref *) -> read_ref
+    | 26 (* shared *) -> read_shared
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
 	
   and read_tree ib : tree =
@@ -887,16 +887,16 @@ struct
 	    ) in
 	  format shared record_array
 	    
-      | `Ref x ->
+      | `Shared x ->
           let tbl, p = shared in
           incr p;
           let pos = !p in
           let offset = Bi_share.Wr.put tbl x pos in
           if offset = 0 then
-            Label ((Atom (sprintf "ref%i:" pos, atom), label),
+            Label ((Atom (sprintf "shared%i ->" pos, atom), label),
                    format shared x)
           else
-            Atom (sprintf "ref%i" (pos - offset), atom)
+            Atom (sprintf "shared%i" (pos - offset), atom)
 
   and format_field shared (o, h, x) =
     let s =

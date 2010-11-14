@@ -319,7 +319,7 @@ let write_svint ob x =
 
 
 
-let rec write_t ob shared tagged (x : tree) =
+let rec write_t ob tagged (x : tree) =
   match x with
       `Unit ->
 	if tagged then
@@ -381,7 +381,7 @@ let rec write_t ob shared tagged (x : tree) =
 	       Bi_vint.write_uvint ob len;
 	       if len > 0 then (
 		 write_tag ob node_tag;
-		 Array.iter (write_t ob shared false) a
+		 Array.iter (write_t ob false) a
 	       )
 	)
 
@@ -389,13 +389,13 @@ let rec write_t ob shared tagged (x : tree) =
 	if tagged then
 	  write_tag ob tuple_tag;
 	Bi_vint.write_uvint ob (Array.length a);
-	Array.iter (write_t ob shared true) a
+	Array.iter (write_t ob true) a
 
     | `Record a ->
 	if tagged then
 	  write_tag ob record_tag;
 	Bi_vint.write_uvint ob (Array.length a);
-        Array.iter (write_field ob shared) a
+        Array.iter (write_field ob) a
 
     | `Num_variant (i, x) ->
 	if tagged then
@@ -403,7 +403,7 @@ let rec write_t ob shared tagged (x : tree) =
 	write_numtag ob i (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_t ob shared true v)
+	   | Some v -> write_t ob true v)
 
     | `Variant (o, h, x) ->
 	if tagged then
@@ -411,7 +411,7 @@ let rec write_t ob shared tagged (x : tree) =
 	write_hashtag ob h (x <> None);
 	(match x with
 	     None -> ()
-	   | Some v -> write_t ob shared true v)
+	   | Some v -> write_t ob true v)
 
     | `Table o ->
 	if tagged then
@@ -435,7 +435,7 @@ let rec write_t ob shared tagged (x : tree) =
 		     if Array.length ai <> col_num then
 		       invalid_arg "Bi_io.write_t: Malformed `Table";
 		     for j = 0 to col_num - 1 do
-		       write_t ob shared false ai.(j)
+		       write_t ob false ai.(j)
 		     done
 		   done
 		 )
@@ -444,18 +444,17 @@ let rec write_t ob shared tagged (x : tree) =
     | `Shared x ->
         if tagged then
           write_tag ob shared_tag;
-        let offset = Bi_share.Wr.put shared x (ob.o_offs + ob.o_len) in
+        let offset = Bi_share.Wr.put ob.o_shared x (ob.o_offs + ob.o_len) in
         Bi_vint.write_uvint ob offset;
         if offset = 0 then
-          write_t ob shared true x
+          write_t ob true x
 
-and write_field ob shared (s, h, x) =
+and write_field ob (s, h, x) =
   write_hashtag ob h true;
-  write_t ob shared true x
+  write_t ob true x
 
 let write_tree ob x =
-  let shared = Bi_share.Wr.create 512 in
-  write_t ob shared true x
+  write_t ob true x
 
 let string_of_tree x =
   let ob = Bi_outbuf.create 1000 in
@@ -587,8 +586,6 @@ let print s = print_string s; print_newline ()
 
 let read_tree ?(unhash = make_unhash []) ib : tree =
 
-  let shared = Bi_share.Rd.create 512 in
-
   let rec read_array ib =
     let len = Bi_vint.read_uvint ib in
     if len = 0 then `Array None
@@ -665,12 +662,14 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     let offset = Bi_vint.read_uvint ib in
     if offset = 0 then
       let rec r = `Shared r in
-      Bi_share.Rd.put shared pos r;
+      Bi_share.Rd_poly.put ib.i_shared
+        (pos, Bi_share.Rd_poly.dummy_type_id) (Obj.repr r);
       let x = read_tree ib in
       Obj.set_field (Obj.repr r) 1 (Obj.repr x);
       r
     else
-      Bi_share.Rd.get shared (pos - offset)
+      Obj.obj (Bi_share.Rd_poly.get ib.i_shared
+                 (pos - offset, Bi_share.Rd_poly.dummy_type_id))
 
   and reader_of_tag = function
       0 (* bool *) -> read_bool

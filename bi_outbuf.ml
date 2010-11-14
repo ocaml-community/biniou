@@ -7,6 +7,8 @@ type t = {
   mutable o_offs : int;
   o_init_len : int;
   o_make_room : (t -> int -> unit);
+  mutable o_shared : Bi_share.Wr.tbl;
+  o_shared_init_len : int;
 }
 
 let really_extend b n =
@@ -34,17 +36,19 @@ let flush_to_channel oc b n =
     really_extend b n
 
 
-let create ?(make_room = really_extend) n = {
+let create ?(make_room = really_extend) ?(shrlen = 256) n = {
   o_s = String.create n;
   o_max_len = n;
   o_len = 0;
   o_offs = 0;
   o_init_len = n;
   o_make_room = make_room;
+  o_shared = Bi_share.Wr.create shrlen;
+  o_shared_init_len = shrlen;
 }
 
-let create_channel_writer ?(len = 4096) oc =
-  create ~make_room:(flush_to_channel oc) len
+let create_channel_writer ?(len = 4096) ?shrlen oc =
+  create ~make_room:(flush_to_channel oc) ?shrlen len
 
 let flush_channel_writer b =
   b.o_make_room b 0
@@ -99,12 +103,14 @@ let add_char4 b c1 c2 c3 c4 =
 
 let clear b =
   b.o_offs <- 0;
-  b.o_len <- 0
+  b.o_len <- 0;
+  Bi_share.Wr.clear b.o_shared
 
 let reset b =
   if String.length b.o_s <> b.o_init_len then
     b.o_s <- String.create b.o_init_len;
   b.o_offs <- 0;
-  b.o_len <- 0
+  b.o_len <- 0;
+  b.o_shared <- Bi_share.Wr.create b.o_shared_init_len
   
 let contents b = String.sub b.o_s 0 b.o_len

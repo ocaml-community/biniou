@@ -6,7 +6,8 @@ type t = {
   mutable i_len : int;
   mutable i_offs : int;
   mutable i_max_len : int;
-  i_refill : (t -> int -> unit)
+  i_refill : (t -> int -> unit);
+  i_shared : Bi_share.Rd_poly.tbl;
 }
 
 exception End_of_input
@@ -60,13 +61,14 @@ let peek ib =
     else
       raise End_of_input
 
-let from_string ?(pos = 0) s = {
+let from_string ?(pos = 0) ?(shrlen = 256) s = {
   i_s = s;
   i_pos = pos;
   i_len = String.length s;
   i_offs = -pos;
   i_max_len = String.length s;
-  i_refill = (fun ib n -> ())
+  i_refill = (fun ib n -> ());
+  i_shared = Bi_share.Rd_poly.create shrlen;
 }
 
 (*
@@ -95,11 +97,12 @@ let refill_from_channel ic ib n =
       ib.i_len <- rem_len + really_read
   )
 
-let from_channel ?(len = 4096) ic = {
+let from_channel ?(len = 4096) ?(shrlen = 256) ic = {
   i_s = String.create len;
   i_pos = 0;
   i_len = 0;
   i_offs = 0;
   i_max_len = len;
-  i_refill = refill_from_channel ic
+  i_refill = refill_from_channel ic;
+  i_shared = Bi_share.Rd_poly.create shrlen;
 }

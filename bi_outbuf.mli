@@ -29,6 +29,16 @@ type t = {
     This function is only called when there is not enough space for [n]
     bytes.
   *)
+
+  mutable o_shared : Bi_share.Wr.tbl;
+    (**
+       Hash table used to map shared objects to positions in the input stream.
+    *)
+
+  o_shared_init_len : int;
+    (**
+       Initial length of the [o_shared] table.
+    *)
 }
 
 val really_extend : t -> int -> unit
@@ -41,9 +51,10 @@ val flush_to_channel : out_channel -> t -> int -> unit
     Alternate make_room function: write to an out_channel.
   *)
 
-val create : ?make_room:(t -> int -> unit) -> int -> t
+val create : ?make_room:(t -> int -> unit) -> ?shrlen:int -> int -> t
   (**
-    Create a buffer.  The default [make_room] function is [really_extend].
+     Create a buffer.  The default [make_room] function is [really_extend].
+     @param shrlen initial size of the table used to store shared values.
   *)
 
 val contents : t -> string
@@ -51,7 +62,7 @@ val contents : t -> string
     Returns the data currently in the buffer.
   *)
 
-val create_channel_writer : ?len:int -> out_channel -> t
+val create_channel_writer : ?len:int -> ?shrlen:int -> out_channel -> t
 val flush_channel_writer : t -> unit
   (**
     Pair of convenience functions for creating a buffer that
@@ -93,7 +104,11 @@ val unsafe_add_char : t -> char -> unit
      room for it. *)
 
 val clear : t -> unit
-  (** Remove any data present in the buffer. *)
+  (** Remove any data present in the buffer and in the table holding
+      shared objects. *)
 
 val reset : t -> unit
-  (** Remove any data present in the buffer. *)
+  (** Remove any data present in the buffer and reset it to its original
+      size.
+      Remove any data present in the table holding shared objects
+      and reset it to its original size. *)

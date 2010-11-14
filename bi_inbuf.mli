@@ -48,6 +48,12 @@ type t = {
       still starts from the new value of [i_pos].
       All the other fields can be modified as well.
     *)
+
+  i_shared : Bi_share.Rd_poly.tbl;
+    (**
+       Hash table used to map positions in the input stream to
+       shared objects (if any).
+    *)
 }
 
 exception End_of_input
@@ -88,13 +94,17 @@ val peek : t -> char
     @raise End_of_input if the end of input has already been reached.
   *)
 
-val from_string : ?pos:int -> string -> t
+val from_string : ?pos:int -> ?shrlen:int -> string -> t
   (**
-    Create an input buffer from a string.
+     Create an input buffer from a string.
+     @param pos     position to start from. Default: 0.
+     @param shrlen  initial length of the table used to store shared values.
   *)
 
-val from_channel : ?len:int -> in_channel -> t
+val from_channel : ?len:int -> ?shrlen:int -> in_channel -> t
   (**
-    Create an input buffer from an in_channel.
-    Such a buffer is not extensible and [read] requests may not exceed [len].
+     Create an input buffer from an in_channel.
+     Such a buffer is not extensible and [read] requests may not exceed [len].
+     @param len     buffer length.
+     @param shrlen  initial length of the table used to store shared values.
   *)

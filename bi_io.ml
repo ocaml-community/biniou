@@ -444,7 +444,9 @@ let rec write_t ob tagged (x : tree) =
     | `Shared x ->
         if tagged then
           write_tag ob shared_tag;
-        let offset = Bi_share.Wr.put ob.o_shared x (ob.o_offs + ob.o_len) in
+        let offset =
+          Bi_share.Wr.put ob.o_shared
+            (x, Bi_share.dummy_type_id) (ob.o_offs + ob.o_len) in
         Bi_vint.write_uvint ob offset;
         if offset = 0 then
           write_t ob true x
@@ -662,14 +664,14 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     let offset = Bi_vint.read_uvint ib in
     if offset = 0 then
       let rec r = `Shared r in
-      Bi_share.Rd_poly.put ib.i_shared
-        (pos, Bi_share.Rd_poly.dummy_type_id) (Obj.repr r);
+      Bi_share.Rd.put ib.i_shared
+        (pos, Bi_share.dummy_type_id) (Obj.repr r);
       let x = read_tree ib in
       Obj.set_field (Obj.repr r) 1 (Obj.repr x);
       r
     else
-      Obj.obj (Bi_share.Rd_poly.get ib.i_shared
-                 (pos - offset, Bi_share.Rd_poly.dummy_type_id))
+      Obj.obj (Bi_share.Rd.get ib.i_shared
+                 (pos - offset, Bi_share.dummy_type_id))
 
   and reader_of_tag = function
       0 (* bool *) -> read_bool
@@ -890,7 +892,7 @@ struct
           let tbl, p = shared in
           incr p;
           let pos = !p in
-          let offset = Bi_share.Wr.put tbl x pos in
+          let offset = Bi_share.Wr.put tbl (x, Bi_share.dummy_type_id) pos in
           if offset = 0 then
             Label ((Atom (sprintf "shared%i ->" pos, atom), label),
                    format shared x)

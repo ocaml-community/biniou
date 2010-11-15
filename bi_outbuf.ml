@@ -36,7 +36,7 @@ let flush_to_channel oc b n =
     really_extend b n
 
 
-let create ?(make_room = really_extend) ?(shrlen = 256) n = {
+let create ?(make_room = really_extend) ?(shrlen = 16) n = {
   o_s = String.create n;
   o_max_len = n;
   o_len = 0;

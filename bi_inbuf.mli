@@ -49,7 +49,7 @@ type t = {
       All the other fields can be modified as well.
     *)
 
-  i_shared : Bi_share.Rd_poly.tbl;
+  i_shared : Bi_share.Rd.tbl;
     (**
        Hash table used to map positions in the input stream to
        shared objects (if any).

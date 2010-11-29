@@ -6,7 +6,7 @@
    Format:
 
 {v
-   BOXVAL ::= TAG VAL    // A biniou value
+   TAGVAL ::= TAG VAL    // A biniou value
 
    VAL ::= ATOM
          | ARRAY
@@ -29,14 +29,14 @@
           | string   // sequence of any number of bytes
 
    ARRAY ::= LENGTH (TAG VAL* )?
-   NUM_VARIANT ::= NUM_VARIANT_TAG BOXVAL?
-   VARIANT ::= VARIANT_TAG BOXVAL?
-   TUPLE ::= LENGTH BOXVAL*
-   RECORD ::= LENGTH (FIELD_TAG BOXVAL)*
+   NUM_VARIANT ::= NUM_VARIANT_TAG TAGVAL?
+   VARIANT ::= VARIANT_TAG TAGVAL?
+   TUPLE ::= LENGTH TAGVAL*
+   RECORD ::= LENGTH (FIELD_TAG TAGVAL)*
    TABLE ::=
        LENGTH (LENGTH (FIELD_TAG TAG)* (VAL* )* )? // list of records
 
-   SHARED ::= OFFSET BOXVAL?  // Value given iff the offset is 0.
+   SHARED ::= OFFSET TAGVAL?  // Value given iff the offset is 0.
                               // Otherwise, the offset indicates the 
                               // relative position to the left of a SHARED
                               // to which we are redirected.
@@ -169,7 +169,7 @@ val read_numtag :
 
 (** The [write_untagged_] functions write an untagged value (VAL)
     to an output buffer
-    while the other [write_] functions write a tagged value (BOXVAL). *)
+    while the other [write_] functions write a tagged value (TAGVAL). *)
 
 val write_untagged_unit : Bi_outbuf.t -> unit -> unit
 val write_untagged_bool : Bi_outbuf.t -> bool -> unit

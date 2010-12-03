@@ -1,6 +1,6 @@
 # $Id$
 
-VERSION = 0.9.1
+VERSION = 0.9.2
 
 FLAGS = -dtypes
 PACKS = easy-format
@@ -116,5 +116,6 @@ archive:
 		svn commit -m "biniou version $(VERSION)"
 	cp LICENSE $$WWW/biniou-license.txt
 	cp Changes $$WWW/biniou-changes.txt
+	cp biniou-format.txt $$WWW/biniou-format.txt
 	echo 'let biniou_version = "$(VERSION)"' \
 		> $$WWW/biniou-version.ml

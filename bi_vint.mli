@@ -1,65 +1,6 @@
 (* $Id$ *)
 
-(**
-   Vint: variable-length representation of integers
-   
-   Vints are a variable-length, byte-aligned representation of
-   positive integers.
-   
-   A vint is represented by a sequence of n bytes from least significant
-   to most significant. In all the bytes except the last one, the
-   high bit is set to 1 and indicates that more bytes follow.
-   The high bit of the last byte is set to 0.
-   The remaining 7 bits in each byte represent data.
-
-   Here is the representation of sample values:
-{v
-         0xxxxxxx
-0        00000000
-1        00000001
-2        00000010
-127      01111111
-
-         1xxxxxxx 0xxxxxxx
-128      10000000 00000001
-129      10000001 00000001
-255      11111111 00000001
-256      11111111 00000010
-16383    11111111 01111111
-
-         1xxxxxxx 1xxxxxxx 0xxxxxxx
-16384    10000000 10000000 00000001
-16385    10000001 10000000 00000001
-v}
-
-   Positive integers can be represented by standard vints.
-   We call this representation unsigned vint or uvint.
-
-   Arbitrary integers can also be represented using vints, after mapping
-   to positive integers. We call this representation signed vint or svint.
-   Positive numbers and 0 are mapped to even numbers and negative numbers
-   are mapped to odd positive numbers. Here is the mapping for
-   small numbers:
-{v
-    vint              unsigned	            signed        
-    representation    interpretation	    interpretation
-		      (uvint)               (svint)	
-    0xxxxxx0		
-    00000000          0	             	    0
-    00000010          2	             	    1
-    00000100          4	                    2
-    00000110          6	                    3
-				
-    0xxxxxx1	  						
-    00000001          1	                    -1
-    00000011          3	                    -2
-    00000101          5                     -3
-v}
-
-   @see <http://lucene.apache.org/java/2_4_0/fileformats.html#VInt>
-   Lucene VInt specification
-*)
-
+(** Vint: variable-length representation of integers *)
 
 (**
    This module currently provides only conversions between vint and the

@@ -1,4 +1,14 @@
                               The Biniou format
+                              -----------------
+
+Contents:
+
+1. Grammar
+2. Tags
+3. Fixed-length types
+4. Vints
+5. Field and variant name hashing
+6. Numeric variants
 
 
 
@@ -54,7 +64,7 @@
 Tags indicate the shallow structure of any biniou value.
 
 The biniou format is such that the tag of any value is known
-from the input data.  This allows to decode biniou data as a tree
+from the input data.  This allows decoding biniou data as a tree
 where each node represents a biniou value, without requiring external 
 type information.
 
@@ -96,10 +106,10 @@ the default interpretation of these values shall be used:
     ---------------------------------------------------------------------
     1          unit            0 represents the unit value
     1          bool            0 represents false, 1 represents true
-    1          int8            unsigned int
-    2          int16           big endian unsigned int
-    4          int32           big endian unsigned int
-    8          int64           big endian unsigned int
+    1          int8            unsigned 8-bit int
+    2          int16           big endian unsigned 16-bit int
+    4          int32           big endian unsigned 32-bit int
+    8          int64           big endian unsigned 64-bit int
     8          float64         big endian IEEE-754 binary64 (double)
 
 
@@ -148,13 +158,13 @@ small numbers:
     vint              unsigned	            signed        
     representation    interpretation	    interpretation
 		      (uvint)               (svint)	
-    0xxxxxx0		
+    0xxxxxx0
     00000000          0	             	    0
     00000010          2	             	    1
     00000100          4	                    2
     00000110          6	                    3
-				
-    0xxxxxx1	  						
+
+    0xxxxxx1					
     00000001          1	                    -1
     00000011          3	                    -2
     00000101          5                     -3
@@ -164,15 +174,9 @@ small numbers:
 5. Field and variant name hashing
 
 
-Each record field or variant has a full name consisting in a string
-of arbitrary length, but only a hash of this name is stored in the
-biniou data.
-
-Variant and field tags are stored using 4 bytes.
-The high bit is 0 for variants without an argument, and 1 for
-variants with an argument or record fields.
-The remaining 31 bits are obtained by hashing the name of the variant
-or field as follows:
+Record field names and variant names are represented by a
+31-bit tag which must be a hash of the name.  The following
+hash function must be used:
 
   hash(s):
     h <- 0
@@ -181,6 +185,13 @@ or field as follows:
     done
     h <- h mod 2^31
     return h
+
+For example, hash("Hello") is 0x37eea2f2.
+
+A full field tag or variant tag is made of 32 bits.
+The first bit is 0 for variants without an argument, and 1 for
+variants with an argument or record fields.
+The remaining 31 bits are the hash of field or variant name described above.
 
 
 

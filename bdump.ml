@@ -16,7 +16,7 @@ let () =
     "file
           Location of the dictionary used for unhashing.
           Default: $HOME/.bdump-dict on Unix,
-                   $HOMEPATH/_bdump-dict on Windows";
+                   $HOMEPATH\\_bdump-dict on Windows";
 
     "-w", Arg.String (fun s -> dic := List.rev_append (Bi_dump.split s) !dic),
     "word1,word2,...

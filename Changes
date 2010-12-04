@@ -1,6 +1,19 @@
 Releases of biniou
 ==================
 
+!!! = some incompatibilities
+opt = optimizations
++ui = additions in the user interface
+-ui = restrictions in the user interface
+bug = bug or security fix
+doc = major changes in the documentation
+pkg = changes in the structure of the package or in the installation procedure
+
+2010-12-xx 0.9.2: [+ui] added system of references for sharing values
+                  [!!!] new variant `Shared
+                  [!!!] new fields in input and output buffers
+                  [+ui] bdump: option -h to specify alternate dictionary
+                  [pkg] standalone reference for the biniou format
 
 2010-09-13 0.9.1: [bug] fixed Bi_inbuf.from_channel
                   [pkg] added INSTALL file

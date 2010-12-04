@@ -27,7 +27,8 @@ META: META.in Makefile
 SOURCES = bi_util.mli bi_util.ml \
           bi_share.mli bi_share.ml \
           bi_outbuf.mli bi_outbuf.ml bi_inbuf.mli bi_inbuf.ml \
-          bi_vint.mli bi_vint.ml bi_io.mli bi_io.ml
+          bi_vint.mli bi_vint.ml bi_io.mli bi_io.ml \
+          bi_dump.ml
 
 MLI = $(filter %.mli, $(SOURCES))
 ML = $(filter %.ml, $(SOURCES))

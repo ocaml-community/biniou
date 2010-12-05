@@ -1,6 +1,6 @@
 # $Id$
 
-VERSION = 0.9.2
+VERSION = 1.0.0
 
 FLAGS = -dtypes
 PACKS = easy-format

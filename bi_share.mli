@@ -1,5 +1,7 @@
 (* $Id$ *)
 
+(** \[not for general use\] *)
+
 (**/**)
 
 type type_id

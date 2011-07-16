@@ -224,4 +224,7 @@ let () =
   close_out oc;
 
   wr_perf ();
-  rd_perf ()
+  rd_perf ();
+
+  assert (Bi_stream.test [5; 3; 8; 4]);
+  assert (Bi_stream.test [])

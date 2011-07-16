@@ -1,15 +1,17 @@
 # $Id$
 
-VERSION = 1.0.0
+VERSION = 1.0.1+dev
 
 FLAGS = -dtypes
 PACKS = easy-format
 
-.PHONY: default all opt install doc
+.PHONY: default all opt install doc test
 default: all opt test_biniou META
 all: biniou.cma
 opt: biniou.cmxa bdump
 
+test: test_biniou
+	./test_biniou
 
 ifndef PREFIX
   PREFIX = $(shell dirname $$(dirname $$(which ocamlfind)))
@@ -28,7 +30,7 @@ SOURCES = bi_util.mli bi_util.ml \
           bi_share.mli bi_share.ml \
           bi_outbuf.mli bi_outbuf.ml bi_inbuf.mli bi_inbuf.ml \
           bi_vint.mli bi_vint.ml bi_io.mli bi_io.ml \
-          bi_dump.ml
+          bi_dump.ml bi_stream.mli bi_stream.ml
 
 MLI = $(filter %.mli, $(SOURCES))
 ML = $(filter %.ml, $(SOURCES))
@@ -47,7 +49,7 @@ bdump: $(SOURCES) bdump.ml
 	ocamlfind ocamlopt -o bdump -package $(PACKS) -linkpkg \
 		biniou.cmxa bdump.ml
 
-test_biniou: $(SOURCES) test_biniou.ml
+test_biniou: biniou.cmxa test_biniou.ml
 	ocamlfind ocamlopt -o test_biniou -package "$(PACKS) unix" -linkpkg \
 		biniou.cmxa test_biniou.ml
 

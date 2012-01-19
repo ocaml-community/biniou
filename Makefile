@@ -1,8 +1,6 @@
-# $Id$
-
 VERSION = 1.0.1+dev
 
-FLAGS = -dtypes
+FLAGS = -dtypes -g
 PACKS = easy-format
 
 .PHONY: default all opt install doc test
@@ -40,17 +38,21 @@ CMX = $(ML:.ml=.cmx)
 O = $(ML:.ml=.o)
 
 biniou.cma: $(SOURCES) Makefile
-	ocamlfind ocamlc -a -o biniou.cma -package "$(PACKS)" $(SOURCES)
+	ocamlfind ocamlc -a $(FLAGS) -o biniou.cma \
+		-package "$(PACKS)" $(SOURCES)
 
 biniou.cmxa: $(SOURCES) Makefile
-	ocamlfind ocamlopt -a -o biniou.cmxa -package "$(PACKS)" $(SOURCES)
+	ocamlfind ocamlopt -a $(FLAGS) \
+		-o biniou.cmxa -package "$(PACKS)" $(SOURCES)
 
 bdump: $(SOURCES) bdump.ml
-	ocamlfind ocamlopt -o bdump -package $(PACKS) -linkpkg \
+	ocamlfind ocamlopt -o bdump $(FLAGS) \
+		-package $(PACKS) -linkpkg \
 		biniou.cmxa bdump.ml
 
 test_biniou: biniou.cmxa test_biniou.ml
-	ocamlfind ocamlopt -o test_biniou -package "$(PACKS) unix" -linkpkg \
+	ocamlfind ocamlopt -o test_biniou $(FLAGS) \
+		-package "$(PACKS) unix" -linkpkg \
 		biniou.cmxa test_biniou.ml
 
 doc: doc/index.html

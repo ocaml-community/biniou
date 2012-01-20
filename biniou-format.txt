@@ -35,8 +35,9 @@ Contents:
          | float64  // IEEE-754 binary64
          | uvint    // unsigned variable-length int
          | svint    // signed variable-length int
-         | string   // sequence of any number of bytes
+         | STRING   // sequence of any number of bytes prefixed by its length
 
+  STRING ::= LENGTH byte*
   ARRAY ::= LENGTH (TAG VAL* )?
   NUM_VARIANT ::= NUM_VARIANT_TAG TAGVAL?
   VARIANT ::= VARIANT_TAG TAGVAL?

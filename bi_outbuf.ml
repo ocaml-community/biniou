@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 type t = {
   mutable o_s : string;
   mutable o_max_len : int;
@@ -28,12 +26,14 @@ let really_extend b n =
   b.o_s <- s;
   b.o_max_len <- slen
 
-let flush_to_channel oc b n =
-  output oc b.o_s 0 b.o_len;
+let flush_to_output abstract_output b n =
+  abstract_output b.o_s 0 b.o_len;
   b.o_offs <- b.o_offs + b.o_len;
   b.o_len <- 0;
   if n > b.o_max_len then
     really_extend b n
+
+let flush_to_channel oc = flush_to_output (output oc)
 
 
 let create ?(make_room = really_extend) ?(shrlen = 16) n = {
@@ -52,6 +52,11 @@ let create_channel_writer ?(len = 4096) ?shrlen oc =
 
 let flush_channel_writer b =
   b.o_make_room b 0
+
+let create_output_writer ?(len = 4096) ?shrlen out =
+  create ~make_room:(flush_to_output out#output) ?shrlen len
+
+let flush_output_writer = flush_channel_writer
 
 
 (*

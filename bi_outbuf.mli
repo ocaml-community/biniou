@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** Output buffer *)
 
 type t = {
@@ -68,6 +66,15 @@ val flush_channel_writer : t -> unit
     Pair of convenience functions for creating a buffer that
     flushes data to an out_channel when it is full.
   *)
+
+val create_output_writer :
+  ?len:int -> ?shrlen:int -> < output : string -> int -> int -> int; .. > -> t
+val flush_output_writer : t -> unit
+  (**
+     Pair of convenience functions for creating a buffer that
+     flushes data to an object when it is full.
+  *)
+
 
 val extend : t -> int -> unit
   (**

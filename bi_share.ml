@@ -44,7 +44,7 @@ module Rd =
 struct
   type tbl = ((int * type_id), Obj.t) Hashtbl.t
 
-  let create = Hashtbl.create
+  let create n = Hashtbl.create n
   let clear = Hashtbl.clear
 
   let put tbl pos x =

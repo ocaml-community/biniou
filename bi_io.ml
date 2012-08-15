@@ -195,18 +195,19 @@ let write_untagged_int32 ob x =
   let low = Int32.to_int x in
   Bi_outbuf.add_char ob (Char.chr ((low lsr 8) land 0xff));
   Bi_outbuf.add_char ob (Char.chr (low land 0xff))
-    
-let float_endianness =
+
+let float_endianness = lazy (
   match String.unsafe_get (Obj.magic 1.0) 0 with
       '\x3f' -> `Big
     | '\x00' -> `Little
     | _ -> assert false
+)
 
 let read_untagged_float64 ib =
   let i = Bi_inbuf.read ib 8 in
   let s = ib.i_s in
   let x = Obj.new_block Obj.double_tag 8 in
-  (match float_endianness with
+  (match Lazy.force float_endianness with
        `Little ->
 	 for j = 0 to 7 do
 	   String.unsafe_set (Obj.obj x) (7-j) (String.unsafe_get s (i+j))
@@ -221,7 +222,7 @@ let read_untagged_float64 ib =
 let write_untagged_float64 ob x =
   let i = Bi_outbuf.alloc ob 8 in
   let s = ob.o_s in
-  (match float_endianness with
+  (match Lazy.force float_endianness with
        `Little ->
 	 for j = 0 to 7 do
 	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) (7-j))

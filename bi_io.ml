@@ -911,14 +911,20 @@ end
 
 let init () = (Bi_share.Wr.create 512, ref 0)
 
+let view_of_tree t =
+  Easy_format.Pretty.to_string (Pp.format (init ()) t)
+
+let print_view_of_tree t =
+  Easy_format.Pretty.to_stdout (Pp.format (init ()) t)
+
+let output_view_of_tree oc t =
+  Easy_format.Pretty.to_channel oc (Pp.format (init ()) t)
+
 let view ?unhash s =
-  Easy_format.Pretty.to_string
-    (Pp.format (init ()) (tree_of_string ?unhash s))
+  view_of_tree (tree_of_string ?unhash s)
 
 let print_view ?unhash s =
-  Easy_format.Pretty.to_stdout
-    (Pp.format (init ()) (tree_of_string ?unhash s))
+  print_view_of_tree (tree_of_string ?unhash s)
 
 let output_view ?unhash oc s =
-  Easy_format.Pretty.to_channel oc 
-    (Pp.format (init ()) (tree_of_string ?unhash s))
+  output_view_of_tree oc (tree_of_string ?unhash s)

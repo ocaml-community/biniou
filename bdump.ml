@@ -46,11 +46,25 @@ let () =
   );
 
   let unhash = Bi_io.make_unhash !dic in
-  let ic = 
+  let ic =
     match !file with
 	None -> stdin
       | Some s -> open_in_bin s
   in
-  Bi_io.print_view ~unhash (Bi_dump.load ic);
-  print_newline ();
+  let inbuf = Bi_inbuf.from_string (Bi_dump.load ic) in
+  let saw_clean_input = ref false in
+  Printexc.record_backtrace true;
+  (try
+    while true do
+      Bi_io.print_view_of_tree (Bi_io.read_tree ~unhash inbuf);
+      print_newline ();
+      saw_clean_input := true
+    done;
+  with e ->
+    if not !saw_clean_input then (
+      Printf.printf "Exception: %s" (Printexc.to_string e);
+      Printexc.print_backtrace stdout
+     )
+  );
+
   close_in ic

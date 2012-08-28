@@ -173,14 +173,17 @@ val tag_of_tree : tree -> node_tag
   (** Returns the node tag of the given tree. *)
 
 
+val view_of_tree : tree -> string
 val view :
   ?unhash:(hash -> string option) -> string -> string
   (** Prints a human-readable representation of the data into a string. *)
 
+val print_view_of_tree : tree -> unit
 val print_view :
   ?unhash:(hash -> string option) -> string -> unit
   (** Prints a human-readable representation of the data to stdout. *)
 
+val output_view_of_tree : out_channel -> tree -> unit
 val output_view :
   ?unhash:(hash -> string option) -> out_channel -> string -> unit
   (** Prints a human-readable representation of the data to an out_channel. *)

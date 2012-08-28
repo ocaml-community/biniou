@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** Input buffer *)
 
 type t = {

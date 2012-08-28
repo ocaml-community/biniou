@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 open Printf
 
 (*
@@ -35,8 +33,7 @@ let load ic =
   let buf = Buffer.create 1000 in
   try
     while true do
-      Buffer.add_string buf (input_line ic);
-      Buffer.add_char buf '\n'
+      Buffer.add_char buf (input_char ic);
     done;
     assert false
   with End_of_file ->

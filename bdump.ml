@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 open Printf
 
 let () =
@@ -52,19 +50,25 @@ let () =
       | Some s -> open_in_bin s
   in
   let inbuf = Bi_inbuf.from_string (Bi_dump.load ic) in
-  let saw_clean_input = ref false in
+  let value_count = ref 0 in
   Printexc.record_backtrace true;
   (try
     while true do
+      (try ignore (Bi_inbuf.peek inbuf)
+       with Bi_inbuf.End_of_input -> raise Exit);
       Bi_io.print_view_of_tree (Bi_io.read_tree ~unhash inbuf);
       print_newline ();
-      saw_clean_input := true
+      incr value_count;
     done;
-  with e ->
-    if not !saw_clean_input then (
-      Printf.printf "Exception: %s" (Printexc.to_string e);
-      Printexc.print_backtrace stdout
-     )
+   with
+       Exit -> ()
+     | e ->
+         Printf.eprintf "Broken input after reading %i value%s: \
+                         exception %s\n"
+           !value_count (if !value_count > 1 then "s" else "")
+           (Printexc.to_string e);
+         Printexc.print_backtrace stderr;
+         flush stderr
   );
 
   close_in ic

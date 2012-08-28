@@ -485,9 +485,6 @@ let tag_of_tree (x : tree) =
     | `Shared _ -> shared_tag
 
 
-let tag_error () =
-  Bi_util.error "Corrupted data (tag)"
-
 let read_tag ib =
   Char.code (Bi_inbuf.read_char ib)
 

@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 type t = {
   mutable i_s : string;
   mutable i_pos : int;

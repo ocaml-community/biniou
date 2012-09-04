@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 exception Error of string
 
 let error s = raise (Error s)
@@ -30,7 +28,7 @@ let print_bits ?(pos = 0) ?len s =
   let len =
     match len with
         None -> slen - pos
-      | Some len -> 
+      | Some len ->
           if len > slen - pos then invalid_arg "Bi_util.print_bits"
           else len
   in

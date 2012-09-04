@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** Error handling etc. *)
 
 exception Error of string

@@ -37,7 +37,7 @@ type t = {
   i_refill : t -> int -> unit;
     (**
       Function called when not enough data is available in the buffer.
-      The int argument is the total number of bytes that must be 
+      The int argument is the total number of bytes that must be
       available starting at position [i_pos] when the function returns.
       This function typically does nothing if all input data already has been
       placed into the buffer.
@@ -63,7 +63,7 @@ exception End_of_input
 
 val try_preread : t -> int -> int
   (**
-     [try_preread ib n] make at least [n] bytes available for reading 
+     [try_preread ib n] make at least [n] bytes available for reading
      in [ib.i_s], unless the end of the input is reached.
      The result indicates how many bytes were made available. If smaller than
      [n], the result indicates that the end of the input was reached.

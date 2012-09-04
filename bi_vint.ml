@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (* Variable-byte encoding of 8-byte integers (starting from 0). *)
 
 open Printf
@@ -65,15 +63,15 @@ let write_uvint buf i  =
     x := !x lsr 7;
   done;
   Bi_outbuf.unsafe_add_char buf (Char.chr !x)
-    
+
 let write_svint buf i =
   write_uvint buf (unsigned_of_signed i)
-    
+
 (* convenience *)
 let uvint_of_uint ?buf i =
-  let buffer = 
+  let buffer =
     match buf with
-      | None -> Bi_outbuf.create 10 
+      | None -> Bi_outbuf.create 10
       | Some b -> b
   in
   Bi_outbuf.clear buffer;
@@ -126,7 +124,7 @@ let int_of_svint s =
   let x = read_svint ib in
   check_end_of_input ib;
   x
-  
+
 
 (*
   Testing

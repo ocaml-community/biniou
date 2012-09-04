@@ -21,8 +21,8 @@ type t = {
 
   o_make_room : t -> int -> unit;
   (**
-    [make_room buf n] must provide space for at least the requested 
-    number of bytes [n], typically by reallocating a larger buffer 
+    [make_room buf n] must provide space for at least the requested
+    number of bytes [n], typically by reallocating a larger buffer
     string or by flushing the data to a channel.
     This function is only called when there is not enough space for [n]
     bytes.
@@ -43,7 +43,7 @@ val really_extend : t -> int -> unit
   (**
     Default make_room function: reallocate a larger buffer string.
   *)
- 
+
 val flush_to_channel : out_channel -> t -> int -> unit
   (**
     Alternate make_room function: write to an out_channel.
@@ -83,7 +83,7 @@ val extend : t -> int -> unit
 
 val alloc : t -> int -> int
   (**
-    [alloc buf n] makes room for [n] bytes and returns the position 
+    [alloc buf n] makes room for [n] bytes and returns the position
     of the first byte in the buffer string [buf.s].
     It behaves as if [n] arbitrary bytes were added and it is
     the user's responsibility to set them to some meaningful values

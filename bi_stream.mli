@@ -4,7 +4,7 @@
    This module offers a streaming interface for representing long lists
    of elements that cannot fit in memory.
    Stream items are serialized as chunks of configurable length.
-   
+
    Stream format (independent from the biniou serialization format):
 
 {v

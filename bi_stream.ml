@@ -24,12 +24,12 @@ let rec read_chunk of_string ic =
         let len = input_int64 ic in
         if len > Sys.max_string_length then
           error
-            (sprintf 
+            (sprintf
                "Corrupted stream: excessive chunk length (%i bytes)" len);
         let s = String.create len in
         really_input ic s 0 len;
         Some (of_string s)
-        
+
     | '\000' -> None
 
     | c -> error (sprintf "Corrupted stream: %C" c)

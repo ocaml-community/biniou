@@ -46,7 +46,7 @@ Contents:
   TABLE ::= LENGTH (LENGTH (FIELD_TAG TAG)* (VAL* )* )? // list of records
 
   SHARED ::= OFFSET TAGVAL?  // Value given iff the offset is 0.
-                             // Otherwise, the offset indicates the 
+                             // Otherwise, the offset indicates the
                              // relative position to the left of a SHARED
                              // to which we are redirected.
 
@@ -66,12 +66,12 @@ Tags indicate the shallow structure of any biniou value.
 
 The biniou format is such that the tag of any value is known
 from the input data.  This allows decoding biniou data as a tree
-where each node represents a biniou value, without requiring external 
+where each node represents a biniou value, without requiring external
 type information.
 
 The tag values for the various kinds of biniou values are:
 
-    Type of value     Tag    
+    Type of value     Tag
     ---------------------------
     bool              0
     int8              1
@@ -96,7 +96,7 @@ The tag values for the various kinds of biniou values are:
 3. Fixed-length types
 
 
-Atomic values of type unit, bool, int8, int16, int32, int64 and float64 
+Atomic values of type unit, bool, int8, int16, int32, int64 and float64
 represent arbitrary sequences of 1, 2, 4 or 8 bytes.
 
 In order to make the visualization of data easier,
@@ -119,7 +119,7 @@ the default interpretation of these values shall be used:
 
 
 Vints are a variable-length, byte-aligned representation of
-positive integers.  
+positive integers.
 
 A vint is represented by a sequence of bytes from least significant
 to most significant.  In all the bytes except the last one, the
@@ -156,7 +156,7 @@ Positive numbers and 0 are mapped to even numbers and negative numbers
 are mapped to odd positive numbers.  Here is the mapping for
 small numbers:
 
-    vint              unsigned	            signed        
+    vint              unsigned	            signed
     representation    interpretation	    interpretation
 		      (uvint)               (svint)	
     0xxxxxx0

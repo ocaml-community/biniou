@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 open Printf
 
 open Bi_outbuf
@@ -23,7 +21,7 @@ let num_variant_tag = 22
 let variant_tag = 23
 let unit_tag = 24
 let table_tag = 25
-let shared_tag = 26 
+let shared_tag = 26
 
 type hash = int
 
@@ -46,10 +44,10 @@ type tree =
     | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
-    | `Table of 
+    | `Table of
 	((string option * hash * node_tag) array * tree array array) option
     | `Shared of tree ]
-    
+
 (* extend sign bit *)
 let make_signed x =
   if x > 0x3FFFFFFF then x - (1 lsl 31) else x
@@ -111,7 +109,7 @@ let read_hashtag ib cont =
   let x3 = (Char.code s.[i+2]) lsl 8 in
   let x4 = Char.code s.[i+3] in
   let h = make_signed (x1 lor x2 lor x3 lor x4) in
-  
+
   cont ib h has_arg
 
 
@@ -126,7 +124,7 @@ let read_field_hashtag ib =
   let x3 = (Char.code (String.unsafe_get s (i+2))) lsl 8 in
   let x4 = Char.code (String.unsafe_get s (i+3)) in
   make_signed (x1 lor x2 lor x3 lor x4)
-  
+
 
 type int7 = int
 
@@ -150,7 +148,7 @@ let make_unhash l =
   List.iter (
     fun s ->
       let h = hash_name s in
-      try 
+      try
 	match Hashtbl.find tbl h with
 	    Some s' ->
 	      if s <> s' then
@@ -333,7 +331,7 @@ let rec write_t ob tagged (x : tree) =
 	write_untagged_bool ob x
 
     | `Int8 x ->
-	if tagged then 
+	if tagged then
 	  write_tag ob int8_tag;
 	write_untagged_char ob x
 
@@ -593,21 +591,21 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
       let tag = read_tag ib in
       let read = reader_of_tag tag in
       `Array (Some (tag, Array.init len (fun _ -> read ib)))
-      
+
   and read_tuple ib =
     let len = Bi_vint.read_uvint ib in
     `Tuple (Array.init len (fun _ -> read_tree ib))
-      
+
   and read_field ib =
     let h = read_field_hashtag ib in
     let name = unhash h in
     let x = read_tree ib in
     (name, h, x)
-      
+
   and read_record ib =
     let len = Bi_vint.read_uvint ib in
     `Record (Array.init len (fun _ -> read_field ib))
-    
+
   and read_num_variant_cont ib i has_arg =
     let x =
       if has_arg then
@@ -616,10 +614,10 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
 	None
     in
     `Num_variant (i, x)
-  
+
   and read_num_variant ib =
     read_numtag ib read_num_variant_cont
-      
+
   and read_variant_cont ib h has_arg =
     let name = unhash h in
     let x =
@@ -629,17 +627,17 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
 	None
     in
     `Variant (name, h, x)
-  
+
   and read_variant ib =
     read_hashtag ib read_variant_cont
-      
+
   and read_table ib =
     let row_num = Bi_vint.read_uvint ib in
     if row_num = 0 then
       `Table None
     else
       let col_num = Bi_vint.read_uvint ib in
-      let fields = 
+      let fields =
 	Array.init col_num (
 	  fun _ ->
 	    let h = read_field_hashtag ib in
@@ -648,7 +646,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
 	    (name, h, tag)
 	)
       in
-      let readers = 
+      let readers =
 	Array.map (fun (name, h, tag) -> reader_of_tag tag) fields in
       let a =
 	Array.init row_num
@@ -656,7 +654,7 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
 	     Array.init col_num (fun j -> readers.(j) ib))
       in
       `Table (Some (fields, a))
-	
+
   and read_shared ib =
     let pos = ib.i_offs + ib.i_pos in
     let offset = Bi_vint.read_uvint ib in
@@ -690,10 +688,10 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 25 (* table *) -> read_table
     | 26 (* shared *) -> read_shared
     | _ -> Bi_util.error "Corrupted data (invalid tag)"
-	
+
   and read_tree ib : tree =
     reader_of_tag (read_tag ib) ib
-      
+
   in
   read_tree ib
 
@@ -725,44 +723,44 @@ let rec skip_array ib =
     for i = 1 to len do
       read ib
     done
-      
+
 and skip_tuple ib =
   let len = Bi_vint.read_uvint ib in
   for i = 1 to len do
     skip ib
   done
-    
+
 and skip_field ib =
   ignore (read_field_hashtag ib);
   skip ib
-    
+
 and skip_record ib =
   let len = Bi_vint.read_uvint ib in
   for i = 1 to len do
     skip_field ib
   done
-    
+
 and skip_num_variant_cont ib i has_arg =
   if has_arg then
     skip ib
-      
+
 and skip_num_variant ib =
   read_numtag ib skip_num_variant_cont
-    
+
 and skip_variant_cont ib h has_arg =
   if has_arg then
     skip ib
-      
+
 and skip_variant ib =
   read_hashtag ib skip_variant_cont
-    
+
 and skip_table ib =
   let row_num = Bi_vint.read_uvint ib in
   if row_num = 0 then
     ()
   else
     let col_num = Bi_vint.read_uvint ib in
-    let readers = 
+    let readers =
       Array.init col_num (
 	fun _ ->
 	  ignore (read_field_hashtag ib);
@@ -774,7 +772,7 @@ and skip_table ib =
 	readers.(j) ib
       done
     done
-      
+
 and skipper_of_tag = function
     0 (* bool *) -> skip_bool
   | 1 (* int8 *) -> skip_int8
@@ -793,10 +791,10 @@ and skipper_of_tag = function
   | 24 (* unit *) -> skip_unit
   | 25 (* table *) -> skip_table
   | _ -> Bi_util.error "Corrupted data (invalid tag)"
-	
+
 and skip ib : unit =
   skipper_of_tag (read_tag ib) ib
-    
+
 
 (* Equivalent of Array.map that guarantees a left-to-right order *)
 let array_map f a =
@@ -876,7 +874,7 @@ struct
 		  fun a ->
 		    `Record (
 		      Array.mapi (
-			fun i x -> 
+			fun i x ->
 			  let s, h, _ = header.(i) in
 			  (s, h, x)
 		      ) a
@@ -885,7 +883,7 @@ struct
 	      )
 	    ) in
 	  format shared record_array
-	    
+
       | `Shared x ->
           let tbl, p = shared in
           incr p;

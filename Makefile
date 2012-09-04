@@ -69,18 +69,18 @@ install: META
 
 uninstall:
 	test ! -f $(BINDIR)/bdump || rm $(BINDIR)/bdump
-	test ! -f $(BINDIR)/bdump.exe || rm $(BINDIR)/bdump.exe 
+	test ! -f $(BINDIR)/bdump.exe || rm $(BINDIR)/bdump.exe
 	ocamlfind remove biniou
 
 .PHONY: clean
 
 clean:
-	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot 
+	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot
 	rm -f bdump bdump.exe test_biniou test_biniou.exe META
 	rm -rf doc
 	rm -f test.bin test_channels.bin
 
-SUBDIRS = 
+SUBDIRS =
 SVNURL = svn://svn.forge.ocamlcore.org/svnroot/biniou/trunk/biniou
 
 .PHONY: archive

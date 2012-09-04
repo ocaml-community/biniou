@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 open Printf
 
 open Bi_io
@@ -16,9 +14,9 @@ let test_tree : tree =
     `Record [|
       (Some "abc", hash_name "abc", `String "hello");
       (Some "number", hash_name "number", `Svint 123);
-      (Some "variant1", hash_name "variant1", 
+      (Some "variant1", hash_name "variant1",
        `Variant (Some "Foo", hash_name "Foo", Some (`Svint (-456))));
-      (Some "variant2", hash_name "variant2", 
+      (Some "variant2", hash_name "variant2",
        `Variant (Some "Bar", hash_name "Bar", None));
     |];
     `Table (
@@ -140,9 +138,9 @@ let native_test_tree =
       { name = "Jose"; age = 39 };
     |],
     [|
-      [| 1.234567; 2.345678; 3.456789 |]; 
-      [| 4.567890; 5.678901; 6.789012 |]; 
-      [| 7.890123; 8.901234; 9.012345 |]; 
+      [| 1.234567; 2.345678; 3.456789 |];
+      [| 4.567890; 5.678901; 6.789012 |];
+      [| 7.890123; 8.901234; 9.012345 |];
       [| 10.123456; 11.234567; 12.345678 |]
     |]
   )

@@ -65,7 +65,7 @@ let flush_output_writer = flush_channel_writer
 let extend b n =
   if b.o_len + n > b.o_max_len then
     b.o_make_room b n
-      
+
 let alloc b n =
   extend b n;
   let pos = b.o_len in
@@ -79,7 +79,7 @@ let add_substring b s pos len =
 
 let add_string b s =
   add_substring b s 0 (String.length s)
-  
+
 
 let add_char b c =
   let pos = alloc b 1 in
@@ -117,5 +117,5 @@ let reset b =
   b.o_offs <- 0;
   b.o_len <- 0;
   b.o_shared <- Bi_share.Wr.create b.o_shared_init_len
-  
+
 let contents b = String.sub b.o_s 0 b.o_len

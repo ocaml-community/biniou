@@ -1,9 +1,7 @@
-(* $Id$ *)
-
 type type_id = int
 
 let dummy_type_id = 0
-  
+
 let create_type_id =
   let n = ref dummy_type_id in
   fun () ->
@@ -25,7 +23,7 @@ struct
   )
 
   type tbl = int H.t
-      
+
   let create = H.create
   let clear tbl =
     if H.length tbl > 0 then

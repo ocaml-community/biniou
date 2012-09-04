@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** Input and output functions for the Biniou serialization format *)
 
 (** {1 Node tags} *)
@@ -48,10 +46,10 @@ val write_hashtag : Bi_outbuf.t -> hash -> bool -> unit
 val string_of_hashtag : hash -> bool -> string
   (** Same as [write_hashtag] but writes to a string. *)
 
-val read_hashtag : 
+val read_hashtag :
   Bi_inbuf.t ->
   (Bi_inbuf.t -> hash -> bool -> 'a) -> 'a
-  (** [read_hashtag ib f] reads a variant tag as hash [h] and flag [has_arg] 
+  (** [read_hashtag ib f] reads a variant tag as hash [h] and flag [has_arg]
       and returns [f h has_arg]. *)
 
 val read_field_hashtag : Bi_inbuf.t -> hash
@@ -59,7 +57,7 @@ val read_field_hashtag : Bi_inbuf.t -> hash
 
 val make_unhash : string list -> (hash -> string option)
   (** Compute the hash of each string of the input list
-      and return a function that converts a hash back 
+      and return a function that converts a hash back
       to the original string. Lookups do not allocate memory blocks.
       @raise Failure if the input list contains two different strings
       with the same hash.
@@ -151,7 +149,7 @@ type tree =
     | `Record of (string option * hash * tree) array
     | `Num_variant of (int * tree option)
     | `Variant of (string option * hash * tree option)
-    | `Table of 
+    | `Table of
 	((string option * hash * node_tag) array * tree array array) option
     | `Shared of tree ]
   (** Tree representing serialized data, useful for testing

@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** \[not for general use\] *)
 
 (**/**)
@@ -16,7 +14,7 @@ sig
 
   val put : tbl -> ('a * type_id) -> int -> int
     (** [put tbl x pos] returns 0 if [x] is not already in the table
-	and adds [x] to the table.  [pos] is the absolute position 
+	and adds [x] to the table.  [pos] is the absolute position
 	of the first byte of the ref value excluding its tag.
 	If [x] is found in the table, then the difference between
 	[pos] and the original position is returned.

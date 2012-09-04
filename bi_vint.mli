@@ -1,5 +1,3 @@
-(* $Id$ *)
-
 (** Vint: variable-length representation of integers *)
 
 (**

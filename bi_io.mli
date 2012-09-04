@@ -187,3 +187,6 @@ val output_view_of_tree : out_channel -> tree -> unit
 val output_view :
   ?unhash:(hash -> string option) -> out_channel -> string -> unit
   (** Prints a human-readable representation of the data to an out_channel. *)
+
+val safety_test : unit -> unit
+  (** Check that certain low-level hacks work as expected *)

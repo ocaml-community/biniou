@@ -210,6 +210,7 @@ let test_channels x =
   )
 
 let () =
+  Bi_io.safety_test ();
   let s = string_of_tree test_tree in
   Bi_io.print_view s;
   print_newline ();

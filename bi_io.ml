@@ -253,7 +253,7 @@ let write_untagged_int64 ob x =
   write_untagged_float64 ob (Int64.float_of_bits x)
 
 
-let () =
+let safety_test () =
   let s = "\x3f\xf0\x06\x05\x04\x03\x02\x01" in
   let x = 1.00146962706651288 in
   let y = read_untagged_float64 (Bi_inbuf.from_string s) in

@@ -3,12 +3,18 @@ VERSION = 1.0.5
 FLAGS = -dtypes -g
 PACKS = easy-format
 
-.PHONY: default all opt install doc test
-default: all opt test_biniou META
-all: biniou.cma
-opt: biniou.cmxa bdump
+ifeq "$(shell ocamlc -config |grep os_type)" "os_type: Win32"
+EXE=.exe
+else
+EXE=
+endif
 
-test: test_biniou
+.PHONY: default all opt install doc test
+default: all opt test_biniou$(EXE) META
+all: biniou.cma
+opt: biniou.cmxa bdump$(EXE)
+
+test: test_biniou$(EXE)
 	./test_biniou
 
 ifndef PREFIX
@@ -45,13 +51,13 @@ biniou.cmxa: $(SOURCES) Makefile
 	ocamlfind ocamlopt -a $(FLAGS) \
 		-o biniou.cmxa -package "$(PACKS)" $(SOURCES)
 
-bdump: $(SOURCES) bdump.ml
-	ocamlfind ocamlopt -o bdump $(FLAGS) \
+bdump$(EXE): $(SOURCES) bdump.ml
+	ocamlfind ocamlopt -o bdump$(EXE) $(FLAGS) \
 		-package $(PACKS) -linkpkg \
 		biniou.cmxa bdump.ml
 
-test_biniou: biniou.cmxa test_biniou.ml
-	ocamlfind ocamlopt -o test_biniou $(FLAGS) \
+test_biniou$(EXE): biniou.cmxa test_biniou.ml
+	ocamlfind ocamlopt -o test_biniou$(EXE) $(FLAGS) \
 		-package "$(PACKS) unix" -linkpkg \
 		biniou.cmxa test_biniou.ml
 

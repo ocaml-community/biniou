@@ -234,37 +234,10 @@ let write_untagged_float64 ob x =
   )
 
 let read_untagged_float32 ib =
-  let i = Bi_inbuf.read ib 4 in
-  let s = ib.i_s in
-  let x = Obj.new_block Obj.double_tag 4 in
-  (match Lazy.force float_endianness with
-       `Little ->
-	 for j = 0 to 3 do
-	   String.unsafe_set (Obj.obj x) (3-j) (String.unsafe_get s (i+j))
-	 done
-     | `Big ->
-	 for j = 0 to 3 do
-	   String.unsafe_set (Obj.obj x) j (String.unsafe_get s (i+j))
-	 done
-  );
-  (Obj.obj x : float)
+  failwith "not implemented yet"
 
 let write_untagged_float32 ob y =
-  (* 64bits float to 32bits float conversion: loss of precision or even worse
-     can happen here *)
-  let x = Int32.bits_of_float y in
-  let i = Bi_outbuf.alloc ob 4 in
-  let s = ob.o_s in
-  (match Lazy.force float_endianness with
-       `Little ->
-	 for j = 0 to 3 do
-	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) (3-j))
-	 done
-     | `Big ->
-	 for j = 0 to 3 do
-	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) j)
-	 done
-  )
+  failwith "not implemented yet"
 
 (*
 let write_untagged_int64 ob x =

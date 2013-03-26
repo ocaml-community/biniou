@@ -10,6 +10,7 @@ let int8_tag = 1
 let int16_tag = 2
 let int32_tag = 3
 let int64_tag = 4
+let float32_tag = 11
 let float64_tag = 12
 let uvint_tag = 16
 let svint_tag = 17
@@ -35,6 +36,7 @@ type tree =
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
+    | `Float32 of float
     | `Float64 of float
     | `Uvint of int
     | `Svint of int
@@ -231,6 +233,36 @@ let write_untagged_float64 ob x =
 	 done
   )
 
+let read_untagged_float32 ib =
+  let i = Bi_inbuf.read ib 4 in
+  let s = ib.i_s in
+  let x = Obj.new_block Obj.double_tag 4 in
+  (match Lazy.force float_endianness with
+       `Little ->
+	 for j = 0 to 3 do
+	   String.unsafe_set (Obj.obj x) (3-j) (String.unsafe_get s (i+j))
+	 done
+     | `Big ->
+	 for j = 0 to 3 do
+	   String.unsafe_set (Obj.obj x) j (String.unsafe_get s (i+j))
+	 done
+  );
+  (Obj.obj x : float)
+
+let write_untagged_float32 ob x =
+  let i = Bi_outbuf.alloc ob 4 in
+  let s = ob.o_s in
+  (match Lazy.force float_endianness with
+       `Little ->
+	 for j = 0 to 3 do
+	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) (3-j))
+	 done
+     | `Big ->
+	 for j = 0 to 3 do
+	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) j)
+	 done
+  )
+
 (*
 let write_untagged_int64 ob x =
   let x4 = Int64.to_int (Int64.shift_right_logical x 48) in
@@ -299,6 +331,10 @@ let write_int64 ob x =
   write_tag ob int64_tag;
   write_untagged_int64 ob x
 
+let write_float32 ob x =
+  write_tag ob float32_tag;
+  write_untagged_float32 ob x
+
 let write_float64 ob x =
   write_tag ob float64_tag;
   write_untagged_float64 ob x
@@ -349,6 +385,11 @@ let rec write_t ob tagged (x : tree) =
 	if tagged then
 	  write_tag ob int64_tag;
 	write_untagged_int64 ob x
+
+    | `Float32 x ->
+        if tagged then
+	  write_tag ob float32_tag;
+	write_untagged_float32 ob x
 
     | `Float64 x ->
 	if tagged then
@@ -470,6 +511,7 @@ let tag_of_tree (x : tree) =
     | `Int16 _ -> int16_tag
     | `Int32 _ -> int32_tag
     | `Int64 _ -> int64_tag
+    | `Float32 _ -> float32_tag
     | `Float64 _ -> float64_tag
     | `Uvint _ -> uvint_tag
     | `Svint _ -> svint_tag
@@ -572,7 +614,10 @@ let read_int32 ib = `Int32 (read_untagged_int32 ib)
 
 let read_int64 ib = `Int64 (read_untagged_int64 ib)
 
-let read_float ib =
+let read_float32 ib =
+  `Float32 (read_untagged_float32 ib)
+
+let read_float64 ib =
   `Float64 (read_untagged_float64 ib)
 
 let read_uvint ib = `Uvint (read_untagged_uvint ib)
@@ -675,7 +720,8 @@ let read_tree ?(unhash = make_unhash []) ib : tree =
     | 2 (* int16 *) -> read_int16
     | 3 (* int32 *) -> read_int32
     | 4 (* int64 *) -> read_int64
-    | 12 (* float *) -> read_float
+    | 11 (* float32 *) -> read_float32
+    | 12 (* float64 *) -> read_float64
     | 16 (* uvint *) -> read_uvint
     | 17 (* svint *) -> read_svint
     | 18 (* string *) -> read_string
@@ -706,7 +752,8 @@ let skip_int8 ib = skip_bytes ib 1
 let skip_int16 ib = skip_bytes ib 2
 let skip_int32 ib = skip_bytes ib 4
 let skip_int64 ib = skip_bytes ib 8
-let skip_float ib = skip_bytes ib 8
+let skip_float32 ib = skip_bytes ib 4
+let skip_float64 ib = skip_bytes ib 8
 let skip_uvint ib = ignore (read_untagged_uvint ib)
 let skip_svint ib = ignore (read_untagged_svint ib)
 
@@ -779,7 +826,8 @@ and skipper_of_tag = function
   | 2 (* int16 *) -> skip_int16
   | 3 (* int32 *) -> skip_int32
   | 4 (* int64 *) -> skip_int64
-  | 12 (* float *) -> skip_float
+  | 11 (* float32 *) -> skip_float32
+  | 12 (* float64 *) -> skip_float64
   | 16 (* uvint *) -> skip_uvint
   | 17 (* svint *) -> skip_svint
   | 18 (* string *) -> skip_string
@@ -832,6 +880,7 @@ struct
       | `Int16 x -> Atom (sprintf "0x%04x" x, atom)
       | `Int32 x -> Atom (sprintf "0x%08lx" x, atom)
       | `Int64 x -> Atom (sprintf "0x%016Lx" x, atom)
+      | `Float32 x -> Atom (string_of_float x, atom)
       | `Float64 x -> Atom (string_of_float x, atom)
       | `Uvint x -> Atom (string_of_int x, atom)
       | `Svint x -> Atom (string_of_int x, atom)

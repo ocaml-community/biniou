@@ -196,6 +196,9 @@ let write_untagged_int32 ob x =
   Bi_outbuf.add_char ob (Char.chr ((low lsr 8) land 0xff));
   Bi_outbuf.add_char ob (Char.chr (low land 0xff))
 
+let write_untagged_float32 ob x =
+  write_untagged_int32 ob (Int32.bits_of_float x)
+
 let float_endianness = lazy (
   match String.unsafe_get (Obj.magic 1.0) 0 with
       '\x3f' -> `Big
@@ -232,12 +235,6 @@ let write_untagged_float64 ob x =
 	   String.unsafe_set s (i+j) (String.unsafe_get (Obj.magic x) j)
 	 done
   )
-
-let read_untagged_float32 ib =
-  failwith "not implemented yet"
-
-let write_untagged_float32 ob y =
-  failwith "not implemented yet"
 
 (*
 let write_untagged_int64 ob x =
@@ -534,6 +531,9 @@ let read_untagged_int32 ib =
   let x2 =
     Int32.of_int (((Char.code s.[i+2]) lsl 8) lor (Char.code s.[i+3])) in
   Int32.logor (Int32.shift_left x1 16) x2
+
+let read_untagged_float32 ib =
+  Int32.float_of_bits (read_untagged_int32 ib)
 
 (*
 let read_untagged_int64 ib =

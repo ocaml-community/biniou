@@ -32,6 +32,7 @@ Contents:
          | int16    // 2 arbitrary bytes
          | int32    // 4 arbitrary bytes
          | int64    // 8 arbitrary bytes
+         | float32  // IEEE-754 binary32
          | float64  // IEEE-754 binary64
          | uvint    // unsigned variable-length int
          | svint    // signed variable-length int
@@ -78,6 +79,7 @@ The tag values for the various kinds of biniou values are:
     int16             2
     int32             3
     int64             4
+    float32           11
     float64           12
     uvint             16
     svint             17
@@ -96,8 +98,8 @@ The tag values for the various kinds of biniou values are:
 3. Fixed-length types
 
 
-Atomic values of type unit, bool, int8, int16, int32, int64 and float64
-represent arbitrary sequences of 1, 2, 4 or 8 bytes.
+Atomic values of type unit, bool, int8, int16, int32, int64, float32 and
+float64 represent arbitrary sequences of 1, 2, 4 or 8 bytes.
 
 In order to make the visualization of data easier,
 the default interpretation of these values shall be used:
@@ -111,6 +113,7 @@ the default interpretation of these values shall be used:
     2          int16           big endian unsigned 16-bit int
     4          int32           big endian unsigned 32-bit int
     8          int64           big endian unsigned 64-bit int
+    4          float32         big endian IEEE-754 binary32 (float)
     8          float64         big endian IEEE-754 binary64 (double)
 
 

@@ -9,6 +9,7 @@ val int8_tag : node_tag (** Tag indicating an int8 node. *)
 val int16_tag : node_tag (** Tag indicating an int16 node. *)
 val int32_tag : node_tag (** Tag indicating an int32 node. *)
 val int64_tag : node_tag (** Tag indicating an int64 node. *)
+val float32_tag : node_tag (** Tag indicating a float32 node. *)
 val float64_tag : node_tag (** Tag indicating a float64 node. *)
 val uvint_tag : node_tag (** Tag indicating a uvint node. *)
 val svint_tag : node_tag (** Tag indicating an svint node. *)
@@ -92,6 +93,7 @@ val write_untagged_int8 : Bi_outbuf.t -> int -> unit
 val write_untagged_int16 : Bi_outbuf.t -> int -> unit
 val write_untagged_int32 : Bi_outbuf.t -> int32 -> unit
 val write_untagged_int64 : Bi_outbuf.t -> int64 -> unit
+val write_untagged_float32 : Bi_outbuf.t -> float -> unit
 val write_untagged_float64 : Bi_outbuf.t -> float -> unit
 val write_untagged_string : Bi_outbuf.t -> string -> unit
 val write_untagged_uvint : Bi_outbuf.t -> int -> unit
@@ -104,6 +106,7 @@ val write_int8 : Bi_outbuf.t -> int -> unit
 val write_int16 : Bi_outbuf.t -> int -> unit
 val write_int32 : Bi_outbuf.t -> int32 -> unit
 val write_int64 : Bi_outbuf.t -> int64 -> unit
+val write_float32 : Bi_outbuf.t -> float -> unit
 val write_float64 : Bi_outbuf.t -> float -> unit
 val write_string : Bi_outbuf.t -> string -> unit
 val write_uvint : Bi_outbuf.t -> int -> unit
@@ -121,6 +124,7 @@ val read_untagged_int8 : Bi_inbuf.t -> int
 val read_untagged_int16 : Bi_inbuf.t -> int
 val read_untagged_int32 : Bi_inbuf.t -> int32
 val read_untagged_int64 : Bi_inbuf.t -> int64
+val read_untagged_float32 : Bi_inbuf.t -> float
 val read_untagged_float64 : Bi_inbuf.t -> float
 val read_untagged_string : Bi_inbuf.t -> string
 val read_untagged_uvint : Bi_inbuf.t -> int
@@ -140,6 +144,7 @@ type tree =
     | `Int16 of int
     | `Int32 of Int32.t
     | `Int64 of Int64.t
+    | `Float32 of float
     | `Float64 of float
     | `Uvint of int
     | `Svint of int

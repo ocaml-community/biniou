@@ -249,7 +249,10 @@ let read_untagged_float32 ib =
   );
   (Obj.obj x : float)
 
-let write_untagged_float32 ob x =
+let write_untagged_float32 ob y =
+  (* 64bits float to 32bits float conversion: loss of precision or even worse
+     can happen here *)
+  let x = Int32.bits_of_float y in
   let i = Bi_outbuf.alloc ob 4 in
   let s = ob.o_s in
   (match Lazy.force float_endianness with

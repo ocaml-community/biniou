@@ -1,22 +1,33 @@
 open Printf
 
-let error s = failwith s
+let error s = failwith ("Bi_stream: " ^ s)
 
 let input_int64 ic =
   let n = ref 0 in
   for i = 1 to 8 do
     n := (!n lsl 8) lor (input_byte ic);
     if !n < 0 then
-      error "Corrupted stream: excessive chunk length"
+      error "Corrupted stream: excessive or negative chunk length"
   done;
   !n
 
 let output_int64 oc n =
-  let n = ref n in
-  for i = 1 to 8 do
-    output_char oc (char_of_int (!n lsr 56));
-    n := !n lsl 8
-  done
+  match Sys.word_size with
+      64 ->
+        let n = ref n in
+        for i = 1 to 8 do
+          output_char oc (char_of_int (!n lsr 56));
+          n := !n lsl 8
+        done
+    | 32 ->
+        output_string oc "\000\000\000\000";
+        let n = ref n in
+        for i = 1 to 4 do
+          output_char oc (char_of_int (!n lsr 24));
+          n := !n lsl 8
+        done
+    | n ->
+        error (sprintf "unsupported word size (%i)" n)
 
 let rec read_chunk of_string ic =
   match input_char ic with

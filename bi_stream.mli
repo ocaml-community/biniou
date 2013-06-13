@@ -28,7 +28,9 @@ val write_stream :
   (** [write_stream to_string oc st] writes an OCaml stream to the
       output channel [oc]. It creates chunks of [chunk_len],
       except for the last chunk which is usually smaller.
-      @param chunk_len  has a default value of 1024.
+      @param chunk_len  has a default value of 1024. The limit
+                        supported by this OCaml implementation on 32-bit
+                        platforms is 16777215.
   *)
 
 (**/**)

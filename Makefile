@@ -1,4 +1,4 @@
-VERSION = 1.0.7
+VERSION = 1.0.8
 
 FLAGS = -dtypes -g
 PACKS = easy-format

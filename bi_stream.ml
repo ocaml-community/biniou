@@ -3,13 +3,29 @@ open Printf
 let error s = failwith ("Bi_stream: " ^ s)
 
 let input_int64 ic =
-  let n = ref 0 in
-  for i = 1 to 8 do
-    n := (!n lsl 8) lor (input_byte ic);
-    if !n < 0 then
-      error "Corrupted stream: excessive or negative chunk length"
-  done;
-  !n
+  match Sys.word_size with
+      64 ->
+        let n = ref 0 in
+        for i = 1 to 8 do
+          n := (!n lsl 8) lor (input_byte ic);
+        done;
+        if !n < 0 then
+          error "Corrupted stream: excessive chunk length";
+        !n
+    | 32 ->
+        for i = 1 to 4 do
+          if input_byte ic <> 0 then
+            error "Chunk length exceeds supported range on this platform"
+        done;
+        let n = ref 0 in
+        for i = 1 to 4 do
+          n := (!n lsl 8) lor (input_byte ic);
+        done;
+        if !n < 0 then
+          error "Chunk length exceeds supported range on this platform";
+        !n
+    | n ->
+        error (sprintf "unsupported word size (%i)" n)
 
 let output_int64 oc n =
   match Sys.word_size with

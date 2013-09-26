@@ -9,10 +9,16 @@ else
 EXE=
 endif
 
+NATDYNLINK := $(shell if [ -f `ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi)
+
+ifeq "${NATDYNLINK}" "YES"
+CMXS=biniou.cmxs
+endif
+
 .PHONY: default all opt install doc test
 default: all opt test_biniou$(EXE) META
 all: biniou.cma
-opt: biniou.cmxa bdump$(EXE)
+opt: biniou.cmxa $(CMXS) bdump$(EXE)
 
 test: test_biniou$(EXE)
 	./test_biniou
@@ -51,6 +57,9 @@ biniou.cmxa: $(SOURCES) Makefile
 	ocamlfind ocamlopt -a $(FLAGS) \
 		-o biniou.cmxa -package "$(PACKS)" $(SOURCES)
 
+biniou.cmxs: biniou.cmxa
+	ocamlopt -shared -linkall -I . -o biniou.cmxs biniou.cmxa
+
 bdump$(EXE): $(SOURCES) bdump.ml
 	ocamlfind ocamlopt -o bdump$(EXE) $(FLAGS) \
 		-package $(PACKS) -linkpkg \
@@ -71,7 +80,7 @@ install: META
 	test ! -f bdump.exe || cp bdump.exe $(BINDIR)/
 	ocamlfind install biniou META \
           $$(ls $(MLI) $(CMI) $(CMO) $(CMX) $(O) \
-             biniou.cma biniou.cmxa biniou.a)
+             biniou.cma biniou.cmxa biniou.cmxs biniou.a)
 
 uninstall:
 	test ! -f $(BINDIR)/bdump || rm $(BINDIR)/bdump

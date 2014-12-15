@@ -13,6 +13,6 @@ of type definitions except for field and variant names which are
 represented by 31-bit hashes. A program named `bdump` is provided for
 routine visualization of biniou data files.
 
-The program [atdgen](https://github.com/MyLifeLabs/atdgen)
-can be used to derive OCaml-Biniou serializers and
+The program [atdgen](https://mjambon.github.io/atdgen-doc/)
+is used to derive OCaml-Biniou serializers and
 deserializers from type definitions.

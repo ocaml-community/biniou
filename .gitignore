@@ -1,0 +1,11 @@
+*~
+*.cm[ioxat]
+*.[oa]
+*.cmx[as]
+*.cmti
+*.annot
+META
+bdump
+test-stream.dat
+test2.bin
+test_biniou

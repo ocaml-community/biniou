@@ -3,13 +3,13 @@ VERSION = 1.0.9
 FLAGS = -dtypes -g
 PACKS = easy-format
 
-ifeq "$(shell ocamlc -config |grep os_type)" "os_type: Win32"
+ifeq "$(shell ocamlfind ocamlc -config |grep os_type)" "os_type: Win32"
 EXE=.exe
 else
 EXE=
 endif
 
-NATDYNLINK := $(shell if [ -f `ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi)
+NATDYNLINK := $(shell if [ -f `ocamlfind ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi)
 
 ifeq "${NATDYNLINK}" "YES"
 CMXS=biniou.cmxs
@@ -58,7 +58,7 @@ biniou.cmxa: $(SOURCES) Makefile
 		-o biniou.cmxa -package "$(PACKS)" $(SOURCES)
 
 biniou.cmxs: biniou.cmxa
-	ocamlopt -shared -linkall -I . -o biniou.cmxs biniou.cmxa
+	ocamlfind ocamlopt -shared -linkall -I . -o biniou.cmxs biniou.cmxa
 
 bdump$(EXE): $(SOURCES) bdump.ml
 	ocamlfind ocamlopt -o bdump$(EXE) $(FLAGS) \

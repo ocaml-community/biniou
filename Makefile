@@ -103,8 +103,7 @@ install: META byte
 	  -optional $(CMX) $(O) biniou.cmxa biniou.a biniou.cmxs
 
 uninstall:
-	test -f $(BINDIR)/bdump && rm $(BINDIR)/bdump
-	test -f $(BINDIR)/bdump.exe && rm $(BINDIR)/bdump.exe
+	rm -f $(BINDIR)/bdump{.exe,}
 	ocamlfind remove biniou
 
 .PHONY: clean

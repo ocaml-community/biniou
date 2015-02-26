@@ -1,6 +1,6 @@
 VERSION = 1.0.9
 
-FLAGS = -dtypes -g -annot -bin-annot
+FLAGS = -g -annot -bin-annot
 PACKS = easy-format
 
 ifeq "$(shell ocamlfind ocamlc -config |grep os_type)" "os_type: Win32"

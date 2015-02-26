@@ -17,7 +17,7 @@ CMXS=biniou.cmxs
 endif
 
 .PHONY: default all byte opt install doc test
-default: all test_biniou$(EXE) META
+default: all test_biniou$(EXE)
 ifeq "$(BEST)" ".native"
 all: byte opt doc META
 else
@@ -25,9 +25,6 @@ all: byte doc META
 endif
 byte: biniou.cma bdump.byte
 opt: biniou.cmxa $(CMXS) bdump.native
-
-test_biniou$(EXE): test_biniou$(BEST)
-	cp $^ $@
 
 test: test_biniou$(EXE)
 	./$<
@@ -53,9 +50,9 @@ SOURCES = bi_util.mli bi_util.ml \
 
 MLI = $(filter %.mli, $(SOURCES))
 ML = $(filter %.ml, $(SOURCES))
-CMI = $(ML:.ml=.cmi)
-CMT = $(ML:.ml=.cmt)
-ANNOT = $(ML:.ml=.annot)
+CMI = $(ML:.mli=.cmi)
+CMT = $(MLI:.mli=.cmt)
+ANNOT = $(MLI:.mli=.annot)
 CMO = $(ML:.ml=.cmo)
 CMX = $(ML:.ml=.cmx)
 O = $(ML:.ml=.o)
@@ -86,6 +83,9 @@ test_biniou.byte: biniou.cma test_biniou.ml
 test_biniou.native: biniou.cmxa test_biniou.ml
 	ocamlfind ocamlopt -o $@ $(FLAGS) \
 		-package "$(PACKS) unix" -linkpkg $^
+
+%$(EXE): %$(BEST)
+	cp $< $@
 
 doc: doc/index.html
 doc/index.html: $(MLI)

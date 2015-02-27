@@ -1,6 +1,6 @@
 VERSION = 1.0.9
 
-FLAGS = -dtypes -g
+FLAGS = -g -annot -bin-annot
 PACKS = easy-format
 
 ifeq "$(shell ocamlfind ocamlc -config |grep os_type)" "os_type: Win32"
@@ -9,22 +9,28 @@ else
 EXE=
 endif
 
-NATDYNLINK := $(shell if [ -f `ocamlfind ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi)
+BEST != if ocamlfind ocamlopt 2>/dev/null; then echo .native; else echo .byte; fi
+NATDYNLINK != if [ -f `ocamlfind ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi
 
 ifeq "${NATDYNLINK}" "YES"
 CMXS=biniou.cmxs
 endif
 
-.PHONY: default all opt install doc test
-default: all opt test_biniou$(EXE) META
-all: biniou.cma
-opt: biniou.cmxa $(CMXS) bdump$(EXE)
+.PHONY: default all byte opt install doc test
+default: all test_biniou$(EXE)
+ifeq "$(BEST)" ".native"
+all: byte opt doc META
+else
+all: byte doc META
+endif
+byte: biniou.cma bdump.byte
+opt: biniou.cmxa $(CMXS) bdump.native
 
 test: test_biniou$(EXE)
-	./test_biniou
+	./$<
 
 ifndef PREFIX
-  PREFIX = $(shell dirname $$(dirname $$(which ocamlfind)))
+  PREFIX != dirname $$(dirname $$(which ocamlfind))
   export PREFIX
 endif
 
@@ -44,7 +50,9 @@ SOURCES = bi_util.mli bi_util.ml \
 
 MLI = $(filter %.mli, $(SOURCES))
 ML = $(filter %.ml, $(SOURCES))
-CMI = $(ML:.ml=.cmi)
+CMI = $(ML:.mli=.cmi)
+CMT = $(MLI:.mli=.cmt)
+ANNOT = $(MLI:.mli=.annot)
 CMO = $(ML:.ml=.cmo)
 CMX = $(ML:.ml=.cmx)
 O = $(ML:.ml=.o)
@@ -58,40 +66,51 @@ biniou.cmxa: $(SOURCES) Makefile
 		-o biniou.cmxa -package "$(PACKS)" $(SOURCES)
 
 biniou.cmxs: biniou.cmxa
-	ocamlfind ocamlopt -shared -linkall -I . -o biniou.cmxs biniou.cmxa
+	ocamlfind ocamlopt -shared -linkall -I . -o $@ $^
 
-bdump$(EXE): $(SOURCES) bdump.ml
-	ocamlfind ocamlopt -o bdump$(EXE) $(FLAGS) \
-		-package $(PACKS) -linkpkg \
-		biniou.cmxa bdump.ml
+bdump.byte: biniou.cma bdump.ml
+	ocamlfind ocamlc -o $@ $(FLAGS) \
+		-package $(PACKS) -linkpkg $^
 
-test_biniou$(EXE): biniou.cmxa test_biniou.ml
-	ocamlfind ocamlopt -o test_biniou$(EXE) $(FLAGS) \
-		-package "$(PACKS) unix" -linkpkg \
-		biniou.cmxa test_biniou.ml
+bdump.native: biniou.cmxa bdump.ml
+	ocamlfind ocamlopt -o $@ $(FLAGS) \
+		-package $(PACKS) -linkpkg $^
+
+test_biniou.byte: biniou.cma test_biniou.ml
+	ocamlfind ocamlc -o $@ $(FLAGS) \
+		-package "$(PACKS) unix" -linkpkg $^
+
+test_biniou.native: biniou.cmxa test_biniou.ml
+	ocamlfind ocamlopt -o $@ $(FLAGS) \
+		-package "$(PACKS) unix" -linkpkg $^
+
+%$(EXE): %$(BEST)
+	cp $< $@
 
 doc: doc/index.html
 doc/index.html: $(MLI)
 	mkdir -p doc
 	ocamlfind ocamldoc -d doc -html -package easy-format $(MLI)
 
-install: META
-	test ! -f bdump || cp bdump $(BINDIR)/
-	test ! -f bdump.exe || cp bdump.exe $(BINDIR)/
+install: META byte
+	if [ -f bdump.native ]; then \
+		cp bdump.native $(BINDIR)/bdump$(EXE); \
+	else \
+		cp bdump.byte $(BINDIR)/bdump$(EXE); \
+	fi
 	ocamlfind install biniou META \
-          $$(ls $(MLI) $(CMI) $(CMO) $(CMX) $(O) \
-             biniou.cma biniou.cmxa biniou.cmxs biniou.a)
+	  $(MLI) $(CMI) $(CMT) $(ANNOT) $(CMO) biniou.cma \
+	  -optional $(CMX) $(O) biniou.cmxa biniou.a biniou.cmxs
 
 uninstall:
-	test ! -f $(BINDIR)/bdump || rm $(BINDIR)/bdump
-	test ! -f $(BINDIR)/bdump.exe || rm $(BINDIR)/bdump.exe
+	rm -f $(BINDIR)/bdump{.exe,}
 	ocamlfind remove biniou
 
 .PHONY: clean
 
 clean:
-	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot
-	rm -f bdump bdump.exe test_biniou test_biniou.exe META
+	rm -f *.o *.a *.cm[ioxa] *.cmxa *~ *.annot META
+	rm -f {bdump,test_biniou}{.exe,.byte,.native,}
 	rm -rf doc
 	rm -f test.bin test_channels.bin
 

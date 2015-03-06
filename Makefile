@@ -50,7 +50,7 @@ SOURCES = bi_util.mli bi_util.ml \
 
 MLI = $(filter %.mli, $(SOURCES))
 ML = $(filter %.ml, $(SOURCES))
-CMI = $(ML:.mli=.cmi)
+CMI = $(MLI:.mli=.cmi)
 CMT = $(MLI:.mli=.cmt)
 ANNOT = $(MLI:.mli=.annot)
 CMO = $(ML:.ml=.cmo)

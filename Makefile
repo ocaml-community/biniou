@@ -9,8 +9,21 @@ else
 EXE=
 endif
 
-BEST != if ocamlfind ocamlopt 2>/dev/null; then echo .native; else echo .byte; fi
-NATDYNLINK != if [ -f `ocamlfind ocamlc -where`/dynlink.cmxa ]; then echo YES; else echo NO; fi
+BEST = $(shell \
+  if ocamlfind ocamlopt 2>/dev/null; then \
+    echo .native; \
+  else \
+    echo .byte; \
+  fi \
+)
+
+NATDYNLINK = $(shell \
+  if [ -f `ocamlfind ocamlc -where`/dynlink.cmxa ]; then \
+    echo YES; \
+  else \
+    echo NO; \
+  fi \
+)
 
 ifeq "${NATDYNLINK}" "YES"
 CMXS=biniou.cmxs
@@ -18,11 +31,13 @@ endif
 
 .PHONY: default all byte opt install doc test
 default: all test_biniou$(EXE)
+
 ifeq "$(BEST)" ".native"
 all: byte opt doc META
 else
 all: byte doc META
 endif
+
 byte: biniou.cma bdump.byte
 opt: biniou.cmxa $(CMXS) bdump.native
 

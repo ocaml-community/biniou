@@ -8,4 +8,7 @@ META
 bdump
 test-stream.dat
 test2.bin
+*.byte
+*.native
+*.exe
 test_biniou

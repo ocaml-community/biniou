@@ -1,4 +1,4 @@
-VERSION = 1.0.11
+VERSION = 1.0.12
 
 FLAGS = -g -annot -bin-annot
 PACKS = easy-format

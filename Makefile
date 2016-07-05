@@ -45,7 +45,7 @@ test: test_biniou$(EXE)
 	./$<
 
 ifndef PREFIX
-  PREFIX != dirname $$(dirname $$(which ocamlfind))
+  PREFIX = $(shell dirname $$(dirname $$(which ocamlfind)))
   export PREFIX
 endif
 

@@ -45,8 +45,8 @@ test: test_biniou$(EXE)
 	./$<
 
 ifndef PREFIX
-  PREFIX != dirname $$(dirname $$(which ocamlfind))
-  export PREFIX
+	PREFIX != dirname $$(dirname $$(which ocamlfind))
+	export PREFIX
 endif
 
 ifndef BINDIR

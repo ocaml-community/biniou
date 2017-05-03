@@ -44,8 +44,8 @@ let print_bits ?(pos = 0) ?len s =
   done;
   r
 
-(* Maximum int size in bits *)
-let max_int_bits =
+(* int size in bits *)
+let int_size =
   let c = ref 0 in
   let r = ref (-1) in
   while !r <> 0 do

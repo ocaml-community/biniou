@@ -81,7 +81,7 @@ let hash_name s =
 *)
 
 let mask_31bit =
-  let n = Bi_util.max_int_bits - 31 in
+  let n = Bi_util.int_size - 31 in
   assert (n >= 0);
   fun x -> (x lsl n) lsr n
 

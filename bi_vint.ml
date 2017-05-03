@@ -9,13 +9,13 @@ type uint = int
 (* Maximum length of a vint decodable into an OCaml int,
    maximum value of the highest byte of the largest vint supported *)
 let max_vint_bytes, max_highest_byte =
-  if Bi_util.max_int_bits mod 7 = 0 then
-    let m = Bi_util.max_int_bits / 7 in
+  if Bi_util.int_size mod 7 = 0 then
+    let m = Bi_util.int_size / 7 in
     let h = 1 lsl 7 - 1 in
     m, h
   else
-    let m = Bi_util.max_int_bits / 7 + 1 in
-    let h = 1 lsl (Bi_util.max_int_bits mod 7) - 1 in
+    let m = Bi_util.int_size / 7 + 1 in
+    let h = 1 lsl (Bi_util.int_size mod 7) - 1 in
     m, h
 
 let check_highest_byte x =

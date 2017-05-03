@@ -13,3 +13,5 @@ val error : string -> 'a
 val string8_of_int : int -> string
 val string4_of_int : int -> string
 val print_bits : ?pos:int -> ?len:int -> string -> string
+
+val max_int_bits : int

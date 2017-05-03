@@ -82,7 +82,8 @@ let hash_name s =
 
 let mask_31bit =
   let n = Sys.int_size - 31 in
-  fun x -> if n <= 0 then x else (x lsl n) lsr n
+  assert (n >= 0);
+  fun x -> (x lsl n) lsr n
 
 let write_hashtag ob h has_arg =
   let h = mask_31bit h in

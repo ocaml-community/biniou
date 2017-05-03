@@ -6,14 +6,8 @@ open Bi_inbuf
 
 type uint = int
 
-(* Word size in bytes *)
-let word_size =
-  if 0x7fffffff = -1 then 4
-  else 8
-
 (* Maximum int size in bits *)
-let max_int_bits =
-  8 * word_size - 1
+let max_int_bits = Sys.int_size
 
 (* Maximum length of a vint decodable into an OCaml int,
    maximum value of the highest byte of the largest vint supported *)

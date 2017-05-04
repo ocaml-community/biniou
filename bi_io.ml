@@ -79,8 +79,14 @@ let hash_name s =
            record fields.
 
 *)
+
+let mask_31bit =
+  let n = Bi_util.int_size - 31 in
+  assert (n >= 0);
+  fun x -> (x lsl n) lsr n
+
 let write_hashtag ob h has_arg =
-  let h = h land 0x7fffffff in
+  let h = mask_31bit h in
   let pos = Bi_outbuf.alloc ob 4 in
   let s = ob.o_s in
   String.unsafe_set s (pos+3) (Char.chr (h land 0xff));

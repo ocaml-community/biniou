@@ -84,7 +84,7 @@ biniou.cmxs: biniou.cmxa
 	ocamlfind ocamlopt -shared -linkall -I . -o $@ $^
 
 bdump.byte: biniou.cma bdump.ml
-	ocamlfind ocamlc -o $@ $(FLAGS) \
+	ocamlfind ocamlc -compat-32 -o $@ $(FLAGS) \
 		-package $(PACKS) -linkpkg $^
 
 bdump.native: biniou.cmxa bdump.ml
@@ -92,7 +92,7 @@ bdump.native: biniou.cmxa bdump.ml
 		-package $(PACKS) -linkpkg $^
 
 test_biniou.byte: biniou.cma test_biniou.ml
-	ocamlfind ocamlc -o $@ $(FLAGS) \
+	ocamlfind ocamlc -compat-32 -o $@ $(FLAGS) \
 		-package "$(PACKS) unix" -linkpkg $^
 
 test_biniou.native: biniou.cmxa test_biniou.ml

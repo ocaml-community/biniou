@@ -43,3 +43,13 @@ let print_bits ?(pos = 0) ?len s =
     r.[k+8] <- if (i + 1) mod 8 = 0 then '\n' else ' '
   done;
   r
+
+(* int size in bits *)
+let int_size =
+  let c = ref 0 in
+  let r = ref (-1) in
+  while !r <> 0 do
+    r := !r lsr 1;
+    incr c
+  done;
+  !c

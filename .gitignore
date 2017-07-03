@@ -1,14 +1,3 @@
-*~
-*.cm[ioxat]
-*.[oa]
-*.cmx[as]
-*.cmti
-*.annot
-META
-bdump
-test-stream.dat
-test2.bin
-*.byte
-*.native
-*.exe
-test_biniou
+_build
+.merlin
+*.install

@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(executable
+ ((name test_biniou)
+  (libraries (biniou unix))))
+
+(alias
+ ((name runtest)
+  (deps (test_biniou.exe))
+  (action (run ${<}))))

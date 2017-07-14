@@ -53,9 +53,9 @@ let rec read_chunk of_string ic =
           error
             (sprintf
                "Corrupted stream: excessive chunk length (%i bytes)" len);
-        let s = String.create len in
+        let s = Bytes.create len in
         really_input ic s 0 len;
-        Some (of_string s)
+        Some (of_string (Bytes.to_string s))
 
     | '\000' -> None
 

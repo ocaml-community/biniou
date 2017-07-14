@@ -1,7 +1,7 @@
 (** Output buffer *)
 
 type t = {
-  mutable o_s : string;
+  mutable o_s : bytes;
     (** Buffer string *)
 
   mutable o_max_len : int;

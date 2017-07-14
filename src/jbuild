@@ -5,4 +5,4 @@
   (public_name biniou)
   (synopsis "Extensible binary serialization format")
   (wrapped false)
-  (libraries (easy-format))))
+  (libraries (easy-format bytes))))

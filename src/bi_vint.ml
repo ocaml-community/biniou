@@ -75,7 +75,7 @@ let svint_of_int ?buf i =
 
 let read_uvint ib =
   let avail = Bi_inbuf.try_preread ib max_vint_bytes in
-  let s = ib.i_s in
+  let s = Bytes.to_string ib.i_s in
   let pos = ib.i_pos in
   let x = ref 0 in
   (try

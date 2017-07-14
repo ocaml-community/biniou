@@ -1,7 +1,7 @@
 (** Input buffer *)
 
 type t = {
-  mutable i_s : string;
+  mutable i_s : bytes;
     (** This is the buffer string.
        It can be accessed for reading but should normally only
        be written to or replaced only by the [i_refill] function.

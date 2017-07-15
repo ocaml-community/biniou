@@ -75,12 +75,12 @@ let svint_of_int ?buf i =
 
 let read_uvint ib =
   let avail = Bi_inbuf.try_preread ib max_vint_bytes in
-  let s = Bytes.to_string ib.i_s in
+  let s = ib.i_s in
   let pos = ib.i_pos in
   let x = ref 0 in
   (try
      for i = 0 to avail - 1 do
-       let b = Char.code s.[pos+i] in
+       let b = Char.code (Bytes.get s (pos+i)) in
        x := ((b land 0x7f) lsl (7*i)) lor !x;
        if b < 0x80 then (
 	 ib.i_pos <- pos + i + 1;

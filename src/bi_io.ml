@@ -109,13 +109,13 @@ let string_of_hashtag h has_arg =
 
 let read_hashtag ib cont =
   let i = Bi_inbuf.read ib 4 in
-  let s = Bytes.to_string ib.i_s in
-  let x0 = Char.code s.[i] in
+  let s = ib.i_s in
+  let x0 = Char.code (Bytes.get s i) in
   let has_arg = x0 >= 0x80 in
   let x1 = (x0 land 0x7f) lsl 24 in
-  let x2 = (Char.code s.[i+1]) lsl 16 in
-  let x3 = (Char.code s.[i+2]) lsl 8 in
-  let x4 = Char.code s.[i+3] in
+  let x2 = (Char.code (Bytes.get s (i+1))) lsl 16 in
+  let x3 = (Char.code (Bytes.get s (i+2))) lsl 8 in
+  let x4 = Char.code (Bytes.get s (i+3)) in
   let h = make_signed (x1 lor x2 lor x3 lor x4) in
 
   cont ib h has_arg
@@ -123,14 +123,14 @@ let read_hashtag ib cont =
 
 let read_field_hashtag ib =
   let i = Bi_inbuf.read ib 4 in
-  let s = Bytes.to_string ib.i_s in
-  let x0 = Char.code (String.unsafe_get s i) in
+  let s = ib.i_s in
+  let x0 = Char.code (Bytes.unsafe_get s i) in
   if x0 < 0x80 then
     Bi_util.error "Corrupted data (invalid field hashtag)";
   let x1 = (x0 land 0x7f) lsl 24 in
-  let x2 = (Char.code (String.unsafe_get s (i+1))) lsl 16 in
-  let x3 = (Char.code (String.unsafe_get s (i+2))) lsl 8 in
-  let x4 = Char.code (String.unsafe_get s (i+3)) in
+  let x2 = (Char.code (Bytes.unsafe_get s (i+1))) lsl 16 in
+  let x3 = (Char.code (Bytes.unsafe_get s (i+2))) lsl 8 in
+  let x4 = Char.code (Bytes.unsafe_get s (i+3)) in
   make_signed (x1 lor x2 lor x3 lor x4)
 
 
@@ -147,8 +147,7 @@ let write_numtag ob i has_arg =
 
 let read_numtag ib cont =
   let i = Bi_inbuf.read ib 1 in
-  let s = Bytes.to_string ib.i_s in
-  let x = Char.code s.[i] in
+  let x = Char.code (Bytes.get ib.i_s i) in
   let has_arg = x >= 0x80 in
   cont ib (x land 0x7f) has_arg
 
@@ -215,16 +214,16 @@ let float_endianness = lazy (
 
 let read_untagged_float64 ib =
   let i = Bi_inbuf.read ib 8 in
-  let s = Bytes.to_string ib.i_s in
+  let s = ib.i_s in
   let x = Obj.new_block Obj.double_tag 8 in
   (match Lazy.force float_endianness with
        `Little ->
 	 for j = 0 to 7 do
-	   Bytes.unsafe_set (Obj.obj x) (7-j) (String.unsafe_get s (i+j))
+	   Bytes.unsafe_set (Obj.obj x) (7-j) (Bytes.unsafe_get s (i+j))
 	 done
      | `Big ->
 	 for j = 0 to 7 do
-	   Bytes.unsafe_set (Obj.obj x) j (String.unsafe_get s (i+j))
+	   Bytes.unsafe_set (Obj.obj x) j (Bytes.unsafe_get s (i+j))
 	 done
   );
   (Obj.obj x : float)
@@ -526,17 +525,18 @@ let read_untagged_int8 ib =
 
 let read_untagged_int16 ib =
   let i = Bi_inbuf.read ib 2 in
-  let s = Bytes.to_string ib.i_s in
-  ((Char.code s.[i]) lsl 8) lor (Char.code s.[i+1])
+  let s = ib.i_s in
+  ((Char.code (Bytes.get s i)) lsl 8) lor (Char.code (Bytes.get s (i+1)))
 
 
 let read_untagged_int32 ib =
   let i = Bi_inbuf.read ib 4 in
-  let s = Bytes.to_string ib.i_s in
+  let s = ib.i_s in
+  let get_code s i = Char.code (Bytes.get s i) in
   let x1 =
-    Int32.of_int (((Char.code s.[i  ]) lsl 8) lor (Char.code s.[i+1])) in
+    Int32.of_int (((get_code s (i  )) lsl 8) lor (get_code s (i+1))) in
   let x2 =
-    Int32.of_int (((Char.code s.[i+2]) lsl 8) lor (Char.code s.[i+3])) in
+    Int32.of_int (((get_code s (i+2)) lsl 8) lor (get_code s (i+3))) in
   Int32.logor (Int32.shift_left x1 16) x2
 
 let read_untagged_float32 ib =

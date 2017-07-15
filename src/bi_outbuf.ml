@@ -124,4 +124,4 @@ let reset b =
   b.o_len <- 0;
   b.o_shared <- Bi_share.Wr.create b.o_shared_init_len
 
-let contents b = Bytes.to_string (Bytes.sub b.o_s 0 b.o_len)
+let contents b = Bytes.sub_string b.o_s 0 b.o_len

@@ -72,13 +72,19 @@ let alloc b n =
   b.o_len <- pos + n;
   pos
 
-let add_substring b s pos len =
+let add_sub blit b s pos len =
   extend b len;
-  String.blit s pos b.o_s b.o_len len;
+  blit s pos b.o_s b.o_len len;
   b.o_len <- b.o_len + len
+
+let add_substring = add_sub String.blit
+let add_subbytes = add_sub Bytes.blit
 
 let add_string b s =
   add_substring b s 0 (String.length s)
+
+let add_bytes b s =
+  add_subbytes b s 0 (Bytes.length s)
 
 
 let add_char b c =

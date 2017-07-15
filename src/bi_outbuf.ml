@@ -33,8 +33,7 @@ let flush_to_output abstract_output b n =
   if n > b.o_max_len then
     really_extend b n
 
-let flush_to_channel oc =
-  flush_to_output (fun s start len -> output_string oc (String.sub s start len))
+let flush_to_channel oc = flush_to_output (output_substring oc)
 
 
 let create ?(make_room = really_extend) ?(shrlen = 16) n = {

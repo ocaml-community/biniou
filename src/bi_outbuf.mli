@@ -90,6 +90,17 @@ val alloc : t -> int -> int
     by accessing [buf.s] directly.
   *)
 
+val add_bytes : t -> bytes -> unit
+  (** Add bytes to the buffer.
+
+      @since 1.2.0 *)
+
+val add_subbytes : t -> bytes -> int -> int -> unit
+  (** [add_subbytes dst src srcpos len] copies [len] bytes from
+     bytes [src] to buffer [dst] starting from position [srcpos].
+
+     @since 1.2.0 *)
+
 val add_string : t -> string -> unit
   (** Add a string to the buffer. *)
 

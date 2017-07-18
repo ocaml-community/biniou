@@ -59,15 +59,17 @@ let peek ib =
     else
       raise End_of_input
 
-let from_string ?(pos = 0) ?(shrlen = 16) s = {
-  i_s = Bytes.of_string s;
+let from_bytes ?(pos = 0) ?(shrlen = 16) s = {
+  i_s = s;
   i_pos = pos;
-  i_len = String.length s;
+  i_len = Bytes.length s;
   i_offs = -pos;
-  i_max_len = String.length s;
+  i_max_len = Bytes.length s;
   i_refill = (fun ib n -> ());
   i_shared = Bi_share.Rd.create shrlen;
 }
+
+let from_string ?pos ?shrlen s = from_bytes ?pos ?shrlen (Bytes.of_string s)
 
 (*
   Like Pervasives.really_input but returns the number of bytes

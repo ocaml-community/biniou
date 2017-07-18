@@ -99,6 +99,14 @@ val from_string : ?pos:int -> ?shrlen:int -> string -> t
      @param shrlen  initial length of the table used to store shared values.
   *)
 
+val from_bytes : ?pos:int -> ?shrlen:int -> bytes -> t
+  (**
+     Create an input buffer from bytes.
+     @param pos     position to start from. Default: 0.
+     @param shrlen  initial length of the table used to store shared values.
+     @since 1.2.0
+  *)
+
 val from_channel : ?len:int -> ?shrlen:int -> in_channel -> t
   (**
      Create an input buffer from an in_channel.

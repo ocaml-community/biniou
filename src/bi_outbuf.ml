@@ -33,8 +33,7 @@ let flush_to_output abstract_output b n =
   if n > b.o_max_len then
     really_extend b n
 
-let flush_to_channel oc =
-  flush_to_output (fun s start len -> output_string oc (String.sub s start len))
+let flush_to_channel oc = flush_to_output (output_substring oc)
 
 
 let create ?(make_room = really_extend) ?(shrlen = 16) n = {
@@ -73,13 +72,19 @@ let alloc b n =
   b.o_len <- pos + n;
   pos
 
-let add_substring b s pos len =
+let add_sub blit b s pos len =
   extend b len;
-  String.blit s pos b.o_s b.o_len len;
+  blit s pos b.o_s b.o_len len;
   b.o_len <- b.o_len + len
+
+let add_substring = add_sub String.blit
+let add_subbytes = add_sub Bytes.blit
 
 let add_string b s =
   add_substring b s 0 (String.length s)
+
+let add_bytes b s =
+  add_subbytes b s 0 (Bytes.length s)
 
 
 let add_char b c =
@@ -119,4 +124,4 @@ let reset b =
   b.o_len <- 0;
   b.o_shared <- Bi_share.Wr.create b.o_shared_init_len
 
-let contents b = Bytes.to_string (Bytes.sub b.o_s 0 b.o_len)
+let contents b = Bytes.sub_string b.o_s 0 b.o_len

@@ -2,6 +2,7 @@
 
 (executable
  ((name test_biniou)
+  (flags (-safe-string))
   (libraries (biniou unix))))
 
 (alias

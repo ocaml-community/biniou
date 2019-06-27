@@ -8,15 +8,15 @@ dev-repo: "https://github.com/mjambon/biniou.git"
 license: "BSD-3-Clause"
 
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 
 build-test: [
-  ["jbuilder" "runtest" "-p" name]
+  ["dune" "runtest" "-p" name "-j" jobs]
 ]
 
 depends: [
-  "jbuilder" {build}
+  "dune" {build & >= "1.0"}
   "easy-format"
 ]
 

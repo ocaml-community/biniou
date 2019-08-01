@@ -16,7 +16,7 @@ build-test: [
 ]
 
 depends: [
-  "dune" {build & >= "1.0"}
+  "dune" {>= "1.0"}
   "easy-format"
 ]
 

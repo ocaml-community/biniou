@@ -17,5 +17,4 @@ The program [atdgen](https://mjambon.github.io/atdgen-doc/)
 is used to derive OCaml-Biniou serializers and
 deserializers from type definitions.
 
-Biniou format specification:
-https://mjambon.github.io/atdgen-doc/biniou-format.txt
+Biniou format specification: [biniou-format.txt](biniou-format.txt)
